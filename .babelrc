@@ -1,0 +1,19 @@
+{
+    "presets": [
+        "@babel/preset-env",
+        "@babel/typescript"
+      ],
+      "plugins": [
+        "@babel/plugin-proposal-class-properties",
+        "@babel/plugin-proposal-object-rest-spread",
+        "@babel/plugin-transform-runtime",
+        ["module-resolver", {
+          "root": ["./src"],
+          "alias": {
+            "@Global": "./src/global/",
+            "@Database": "./src/global/database",
+            "@FileSystem": "./src/global/fileSystem"
+          }
+        }]
+      ]
+}
