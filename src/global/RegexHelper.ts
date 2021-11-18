@@ -1,5 +1,5 @@
 
-class RegexHelper {
+export default class RegexHelper {
 
     static IsValidString = (regex: RegExp, value: string) => regex.test(value)
 

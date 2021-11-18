@@ -2,6 +2,7 @@ import Error from '@Global/Error'
 import FileSystem from '@Global/fileSystem/fileSystem'
 import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
+import RegexHelper from '@Global/RegexHelper'
 
 import express from 'express'
 import { decompress } from 'lz-string'
