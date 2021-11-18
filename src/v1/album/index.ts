@@ -28,16 +28,16 @@ Album.get('/', async(req, res, next) => {
 })
 
 Album.post('/', async(req, res, next) => {
-    const { name, artist, description, file } = req.body;
+    const { name, artist_id, description, file } = req.body;
 
     //Check Arguments
     var invalidArguments = [];
 
-    if (!RegexHelper.IsValidString(/dw/, name))
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
         invalidArguments.push("name")
-    if (!RegexHelper.IsInt(artist))
+    if (!RegexHelper.IsInt(artist_id))
         invalidArguments.push("artist")
-    if (!RegexHelper.IsValidString(/dw/, description))
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
         invalidArguments.push("description")        
 
     if (invalidArguments.length != 0) {
@@ -59,7 +59,7 @@ Album.post('/', async(req, res, next) => {
     }
 
     AlbumDBHelper.Create({
-        data: { artist_id: artist, name: name, description: description },
+        data: { artist_id: artist_id, name: name, description: description },
         onSuccess: (Result) => {
             if (FinalImage) //For some reason if i don't do this check the program acusses FinalImage to be possible null when we already checked before
                 FileSystem.Write({
