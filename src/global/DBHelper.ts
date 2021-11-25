@@ -1,6 +1,12 @@
-import DatabaseHelper from '@Database/DatabaseHelper'
+import DatabaseHelper, { IDBArgument } from '@Database/DatabaseHelper'
 
 export interface IGetAll<T> {
+    onSuccess?: (Result: T[]) => void
+    onError?: (Error: any) => void
+}
+
+export interface IGetWith<T> {
+    arguments: IDBArgument[]
     onSuccess?: (Result: T[]) => void
     onError?: (Error: any) => void
 }
@@ -62,6 +68,15 @@ export default class DBHelper<T extends {}> {
     GetAll = (props: IGetAll<T>) => {
         DatabaseHelper.GetAll({
             target: this.Target,
+            onSuccess: (data) => { if (props.onSuccess) props.onSuccess(this.DataToList(data)) },
+            onError: props.onError
+        })
+    }
+
+    GetWhere = (props: IGetWith<T>) => {
+        DatabaseHelper.GetAll({
+            target: this.Target,
+            arguments: props.arguments,
             onSuccess: (data) => { if (props.onSuccess) props.onSuccess(this.DataToList(data)) },
             onError: props.onError
         })

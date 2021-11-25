@@ -1,5 +1,6 @@
 import fs from 'fs'
 import glob from 'glob'
+import { decompress } from 'lz-string';
 
 export interface IExistsProps {
     file: string
@@ -54,6 +55,12 @@ export interface IMakeDirProps {
     onError?: (Message: NodeJS.ErrnoException | null) => void
 }
 
+export interface IVerifyBase64FileProps {
+    File: string
+    onSuccess?: (Result: string) => void
+    onError?: (err: 'FailDecryption' | 'FailBase64Check' | null) => void
+}
+
 export interface IQueryResult {
     code: 'success' | 'error'
     message: any
@@ -65,7 +72,7 @@ class FileSystem {
     static toValidFileName = (name: string) => { return name.replace(/[^a-zA-Z0-9_]/gm, "_").toLowerCase() };
 
     static Exists = (props: IExistsProps) => {
-        fs.stat(props.file, (err, stat) => {
+        fs.stat(`${FileSystem.baseURL}/${props.file}`, (err, stat) => {
             if (err == null) {
                 if (props.onSuccess)
                     props.onSuccess()
@@ -147,6 +154,21 @@ class FileSystem {
                 if (props.onSuccess)
                     props.onSuccess();
             })
+    }
+
+    static VerifyBase64File = (props: IVerifyBase64FileProps) => {
+        var file = decompress(unescape(props.File));
+    
+        if (!file) {
+            props?.onError('FailDecryption')
+            return;
+        }
+        if (!/[A-Za-z0-9+/=]/.test(file) || file.split('base64,').length != 2) {
+            props?.onError('FailBase64Check')
+            return;
+        }
+        
+        props?.onSuccess(file)
     }
 }
 

@@ -125,25 +125,19 @@ Artist.put('/:id(\\d+)/image', async(req, res, next) => {
                 return;
             }
             
-            var FinalImage = decompress(unescape(file));
-
-            if (!FinalImage) {
-                rest.SendErrorBadRequest(res, Error.DecodeError())
-                return;
-            }
-            
-            if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2) {
-                rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
-                return;
-            }
-
-            FileSystem.Write({
-                fileName: `${Directory}/images/${req.params.id}.png`,
-                data: FinalImage.split('base64,')[1],
-                options: 'base64',
-                onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
-                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-            });
+            FileSystem.VerifyBase64File({
+                File: file,
+                onSuccess: (cover) => {
+                    FileSystem.Write({
+                        fileName: `${Directory}/images/${req.params.id}.png`,
+                        data: cover.split('base64,')[1],
+                        options: 'base64',
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                    });
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.DecodeError())
+            })
         },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

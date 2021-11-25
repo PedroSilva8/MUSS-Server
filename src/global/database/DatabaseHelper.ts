@@ -3,10 +3,10 @@ import $ from 'jquery'
 import Database from '@Database/Database'
 
 export interface IDBArgument {
-    key: string
-    Value: string
-    Comparasion: string
-    JOIN?: 'OR' | 'AND'
+    column: string
+    value: string
+    comparison: string
+    join?: 'OR' | 'AND'
 }
 
 export interface IDBHelperGetAll {
@@ -80,7 +80,7 @@ export default class DatabaseHelper {
 
         if (props.arguments && props.arguments.length != 0) {
             WhereStatement = "WHERE "
-            props.arguments.forEach(e => WhereStatement += "`" + e.key + "`" + e.Comparasion + "\"" + e.Value + "\" " + (e.JOIN ? e.JOIN : ""))
+            props.arguments.forEach(e => WhereStatement += "`" + e.column + "`" + e.comparison + "\"" + e.value + "\" " + (e.join ? e.join : ""))
             WhereStatement = WhereStatement.substring(0, WhereStatement.lastIndexOf(" ") + 1)
         }
         
