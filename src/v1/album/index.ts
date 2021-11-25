@@ -89,18 +89,26 @@ Album.delete('/:id(\\d+)', async(req, res, next) => {
 })
 
 Album.put('/:id(\\d+)', async(req, res, next) => {
-    const { name } = req.body;
+    const { name, artist_id, description } = req.body;
 
-    var TName: boolean = /^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,255}/.test(name);
+    //Check Arguments
+    var invalidArguments = [];
 
-    if (!TName) {
-        res.status(500).send(Error.ArgumentError([{Title: "1"}]));
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+        invalidArguments.push("name")
+    if (!RegexHelper.IsInt(artist_id))
+        invalidArguments.push("artist")
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
+        invalidArguments.push("description")        
+
+    if (invalidArguments.length != 0) {
+        res.status(500).send(Error.ArgumentError(invalidArguments));
         return;
     }
 
     AlbumDBHelper.Update({
         index: parseInt(req.params.id),
-        data: { id: parseInt(req.params.id), artist_id: -1, name: name, description: "" },
+        data: { id: parseInt(req.params.id), artist_id: artist_id, name: name, description: description },
         onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

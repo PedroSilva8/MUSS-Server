@@ -1,6 +1,12 @@
 import fs from 'fs'
 import glob from 'glob'
 
+export interface IExistsProps {
+    file: string
+    onSuccess?: () => void
+    onError?: (Message: NodeJS.ErrnoException | null) => void
+}
+
 export interface IWriteFileProps {
     fileName: string
     data: string
@@ -42,6 +48,12 @@ export interface ITouchFileProps {
     onError?: (Message: NodeJS.ErrnoException | null) => void
 }
 
+export interface IMakeDirProps {
+    Dir: string
+    onSuccess?: () => void
+    onError?: (Message: NodeJS.ErrnoException | null) => void
+}
+
 export interface IQueryResult {
     code: 'success' | 'error'
     message: any
@@ -51,6 +63,18 @@ class FileSystem {
     static baseURL = require.main?.path;
 
     static toValidFileName = (name: string) => { return name.replace(/[^a-zA-Z0-9_]/gm, "_").toLowerCase() };
+
+    static Exists = (props: IExistsProps) => {
+        fs.stat(props.file, (err, stat) => {
+            if (err == null) {
+                if (props.onSuccess)
+                    props.onSuccess()
+                return
+            }
+            else if (props.onError)
+                props.onError(err)
+        })
+    }
 
     static Write = (props: IWriteFileProps) => {
         fs.writeFile(`${FileSystem.baseURL}/${props.fileName}`, props.data, props.options, 
@@ -109,6 +133,20 @@ class FileSystem {
             if (props.onSuccess)
                 props.onSuccess();
         });
+    }
+
+    static MakeDir = (props: IMakeDirProps) => {
+        if (!fs.existsSync(`${FileSystem.baseURL}/${props.Dir}`))
+            fs.mkdir(`${FileSystem.baseURL}/${props.Dir}`, { recursive: true }, (err) => {
+                if (err) {
+                    if (props.onError)
+                        props.onError(err);
+                    return;
+                }
+    
+                if (props.onSuccess)
+                    props.onSuccess();
+            })
     }
 }
 

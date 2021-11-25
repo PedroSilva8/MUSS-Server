@@ -5,6 +5,7 @@ import database from '@Database/Database'
 
 import Artist from './v1/artist'
 import Album from './v1/album'
+import Music from './v1/music'
 
 const app = express();
 const PORT = 3000;
@@ -17,11 +18,11 @@ database.CreatePool({
     user: "root"
 });
 
-app.use(express.json({limit: '120mb'}));
-app.use(express.urlencoded({limit: '120mb', extended: true }));
+app.use(express.json({limit: '1000mb'}));
+app.use(express.urlencoded({limit: '1000mb', extended: true }));
 app.use(cors());
 app.use('/api/1/artist', Artist);
 app.use('/api/1/album', Album);
- 
-// tslint:disable-next-line:no-console
+app.use('/api/1/music', Music);
+
 app.listen(PORT, () => console.log(`it's alive on http://localhost:${PORT}`));

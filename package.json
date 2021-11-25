@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "nodemon",
+    "start": "nodemon --inspect ./src/index.ts",
     "build": "babel src --out-dir dist --extensions \".ts, .tsx\" --source-maps inline",
     "serve": "node dist/index.js"
   },
