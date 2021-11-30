@@ -60,8 +60,8 @@ Music.post('/', async(req, res, next) => {
     }
 
     //Check File
-    var dCover = decompress(unescape(cover));
-    var dMusic = decompress(unescape(music));
+    var dCover = unescape(cover);
+    var dMusic = unescape(music);
 
     if (!dMusic) {
         rest.SendErrorBadRequest(res, Error.DecodeError())
@@ -82,7 +82,7 @@ Music.post('/', async(req, res, next) => {
         data: { album_id: album_id, name: name, description: description },
         onSuccess: (Result) => {
             FileSystem.MakeDir({
-                Dir: `${Directory}/${Result[0].id}_${name}/`,
+                Dir: `${Directory}/${Result[0].id}/`,
                 onSuccess: () => {
                     if (dCover)
                         FileSystem.Write({
@@ -139,7 +139,28 @@ Music.put('/:id(\\d+)', async(req, res, next) => {
 })
 
 Music.delete('/:id(\\d+)', async(req, res, next) => {
+    MusicDBHelper.Exists({
+        index: parseInt(req.params.id),
+        onSuccess: (Exists) => {
+            if (!Exists) {
+                rest.SendErrorNotFound(res, Error.ArgumentError())
+                return
+            }
 
+            FileSystem.Delete({
+                fileName: `${Directory}/${req.params.id}`,
+                onSuccess: () => {
+                    MusicDBHelper.Delete({
+                        index: parseInt(req.params.id),
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+                    })
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.FSDeleteError())
+            })
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Music.get('/:id(\\d+)/image', async(req, res, next) => {

@@ -36,7 +36,7 @@ Artist.post('/', async(req, res, next) => {
     }
 
     //Check File
-    var FinalImage = decompress(unescape(file));
+    var FinalImage = unescape(file);
 
     if (!FinalImage) {
         rest.SendErrorBadRequest(res, Error.DecodeError())

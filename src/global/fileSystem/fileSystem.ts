@@ -121,7 +121,7 @@ class FileSystem {
     }
 
     static Delete = (props: IDeleteFileProps) => {
-        fs.unlink(`${FileSystem.baseURL}/${props.fileName}`, (err) => {
+        fs.rm(`${FileSystem.baseURL}/${props.fileName}`, { recursive: true }, (err) => {
             if (err && props.onError)
                 props.onError(err);
             else if (props.onSuccess)
@@ -157,7 +157,7 @@ class FileSystem {
     }
 
     static VerifyBase64File = (props: IVerifyBase64FileProps) => {
-        var file = decompress(unescape(props.File));
+        var file = unescape(props.File);
     
         if (!file) {
             props?.onError('FailDecryption')

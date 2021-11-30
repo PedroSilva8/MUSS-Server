@@ -46,7 +46,7 @@ Album.post('/', async(req, res, next) => {
     }
 
     //Check File
-    var FinalImage = decompress(unescape(file));
+    var FinalImage = unescape(file);
 
     if (!FinalImage) {
         rest.SendErrorBadRequest(res, Error.DecodeError())
@@ -143,7 +143,7 @@ Album.put('/:id(\\d+)/image', async(req, res, next) => {
                 return;
             }
             
-            var FinalImage = decompress(unescape(file));
+            var FinalImage = unescape(file);
 
             if (!FinalImage) {
                 rest.SendErrorBadRequest(res, Error.DecodeError())
