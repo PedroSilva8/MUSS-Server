@@ -14,7 +14,8 @@
     "paths": {
       "@Global/*": ["src/global/*"],
       "@Database/*": ["src/global/database/*"],
-      "@FileSystem/*": ["src/global/fileSystem/*"]
+      "@FileSystem/*": ["src/global/fileSystem/*"],
+      "@Interface/*": ["src/interface/*"]
     },
   },
   "include": [

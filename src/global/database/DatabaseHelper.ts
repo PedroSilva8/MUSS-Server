@@ -3,18 +3,22 @@ import $ from 'jquery'
 import Database from '@Database/Database'
 
 export interface IDBArgument {
-    key: string
-    Value: string
-    Comparasion: string
-    JOIN?: 'OR' | 'AND'
+    column: string
+    value: string
+    comparison: string
+    join?: 'OR' | 'AND'
+}
+
+export interface IDBOrderBy {
+    orderBy: string
+    orderDir?: 'ASC' | 'DESC'
 }
 
 export interface IDBHelperGetAll {
     target: string
     arguments?: IDBArgument[]
-    orderBy?: string
-    orderDir?: 'ASC' | 'DESC'
-    limit?: string
+    orderBy?: IDBOrderBy
+    limit?: number
     offset?: string
     onSuccess?: (Message: any) => void
     onError?: (Message: any) => void
@@ -80,16 +84,16 @@ export default class DatabaseHelper {
 
         if (props.arguments && props.arguments.length != 0) {
             WhereStatement = "WHERE "
-            props.arguments.forEach(e => WhereStatement += "`" + e.key + "`" + e.Comparasion + "\"" + e.Value + "\" " + (e.JOIN ? e.JOIN : ""))
+            props.arguments.forEach(e => WhereStatement += "`" + e.column + "`" + e.comparison + "\"" + e.value + "\" " + (e.join ? e.join : ""))
             WhereStatement = WhereStatement.substring(0, WhereStatement.lastIndexOf(" ") + 1)
         }
         
         var OrderBy = ""
 
         if (props.orderBy) {
-            OrderBy = "ORDER BY `" + props.orderBy + "`"
-            if (props.orderDir)
-                OrderBy += " " + props.orderDir
+            OrderBy = "ORDER BY `" + props.orderBy.orderBy + "`"
+            if (props.orderBy.orderDir)
+                OrderBy += " " + props.orderBy.orderDir
         }
 
         var limit = ""

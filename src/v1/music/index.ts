@@ -4,29 +4,43 @@ import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 import RegexHelper from '@Global/RegexHelper'
 
+import { AlbumDB, MusicDB } from '@Interface/database'
+
 import express from 'express'
 import { decompress } from 'lz-string'
-import { AlbumDB } from '../album'
 
 const Music = express.Router()
 
 const Directory = "music"
 
-export interface MusicDB {
-    id?: number
-    album_id: number
-    name: string
-    description: string
-}
-
 const MusicDBHelper = new DBHelper<MusicDB>("music");
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
 
 Music.get('/', async(req, res, next) => {
-    MusicDBHelper.GetAll({
-        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
+    const album_id = req.query.album_id as string;
+
+    if (isNaN(parseInt(album_id)) || parseInt(album_id) < 0) {
+        MusicDBHelper.GetAll({ onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), onError: () => rest.SendErrorInternalServer(res, Error.SQLError()) })
+        return
+    }
+
+    MusicDBHelper.GetWhere({
+        arguments: [{
+            column: 'album_id',
+            value: album_id,
+            comparison: '=',
+        }],
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
+})
+
+Music.get('/:id(\\d+)', async(req, res, next) => {
+    MusicDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError([Result])),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    }) 
 })
 
 Music.post('/', async(req, res, next) => {
@@ -48,8 +62,8 @@ Music.post('/', async(req, res, next) => {
     }
 
     //Check File
-    var dCover = decompress(unescape(cover));
-    var dMusic = decompress(unescape(music));
+    var dCover = unescape(cover);
+    var dMusic = unescape(music);
 
     if (!dMusic) {
         rest.SendErrorBadRequest(res, Error.DecodeError())
@@ -67,26 +81,26 @@ Music.post('/', async(req, res, next) => {
     }
 
     MusicDBHelper.Create({
-        data: { album_id: album_id, name: name, description: description },
+        data: { album_id: album_id, name: name, description: description, length: "00:00:00" },
         onSuccess: (Result) => {
             FileSystem.MakeDir({
-                Dir: `${Directory}/${Result[0].id}_${name}/`,
+                Dir: `${Directory}/${Result[0].id}/`,
                 onSuccess: () => {
+                    var coverError = false
                     if (dCover)
                         FileSystem.Write({
-                            fileName: `${Directory}/${Result[0].id}_${name}/${Result[0].id}.png`,
+                            fileName: `${Directory}/${Result[0].id}/${Result[0].id}.png`,
                             data: dCover.split('base64,')[1],
                             options: 'base64',
-                            onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
-                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                            onError: (Message) => { rest.SendErrorInternalServer(res, Error.ArgumentError(Message)); coverError = true }
                         });
                     if (dMusic)
                         FileSystem.Write({
-                            fileName: `${Directory}/${Result[0].id}_${name}/${Result[0].id}.mp3`,
+                            fileName: `${Directory}/${Result[0].id}/${Result[0].id}.mp3`,
                             data: dMusic.split('base64,')[1],
                             options: 'base64',
-                            onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
-                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                            onSuccess: () => (!coverError) ? rest.SendSuccess(res, Error.SuccessError(Result, Result.length)) : () => { },
+                            onError: (Message) => (!coverError) ? rest.SendErrorInternalServer(res, Error.ArgumentError(Message)) : () => { }
                         });  
                 },
                 onError: () => rest.SendErrorInternalServer(res, Error.FSCreateError())
@@ -96,25 +110,73 @@ Music.post('/', async(req, res, next) => {
     })
 })
 
-Music.delete('/:id(\\d+)', async(req, res, next) => {
+Music.put('/:id(\\d+)', async(req, res, next) => {
+    const { album_id, name, description } = req.body;
 
+    //Check Arguments
+    var invalidArguments = [];
+
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+        invalidArguments.push("name")
+    if (!RegexHelper.IsInt(album_id))
+        invalidArguments.push("artist")
+    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
+        invalidArguments.push("description")        
+
+    if (invalidArguments.length != 0) {
+        res.status(500).send(Error.ArgumentError(invalidArguments));
+        return;
+    }
+
+    MusicDBHelper.Update({
+        index: parseInt(req.params.id),
+        data: {
+            album_id: album_id,
+            description: description,
+            name: name,
+            length: "00:00:00"
+        },
+        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+    })
 })
 
-Music.put('/:id(\\d+)', async(req, res, next) => {
+Music.delete('/:id(\\d+)', async(req, res, next) => {
+    MusicDBHelper.Exists({
+        index: parseInt(req.params.id),
+        onSuccess: (Exists) => {
+            if (!Exists) {
+                rest.SendErrorNotFound(res, Error.ArgumentError())
+                return
+            }
 
+            FileSystem.Delete({
+                fileName: `${Directory}/${req.params.id}`,
+                onSuccess: () => {
+                    MusicDBHelper.Delete({
+                        index: parseInt(req.params.id),
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+                    })
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.FSDeleteError())
+            })
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Music.get('/:id(\\d+)/image', async(req, res, next) => {
     MusicDBHelper.Get({
         index: parseInt(req.params.id),
-        onSuccess: (musicResult) => {
-            if (musicResult) {
+        onSuccess: (Music) => {
+            if (Music) {
                 AlbumDBHelper.Get({
-                    index: musicResult.album_id,
+                    index: Music.album_id,
                     onSuccess: (albumResult) => {
                         FileSystem.Exists({
-                            file: `${Directory}/${req.params.id}_${albumResult .name}/${req.params.id}.png`,
-                            onSuccess: () => res.sendFile(`${FileSystem.baseURL}/${Directory}/${req.params.id}_${albumResult.name}/${req.params.id}.png`),
+                            file: `${Directory}/${req.params.id}/${req.params.id}.png`,
+                            onSuccess: () => res.sendFile(`${FileSystem.baseURL}/${Directory}/${req.params.id}/${req.params.id}.png`),
                             onError: () => res.sendFile(`${FileSystem.baseURL}/album/images/${albumResult.id}.png`),
                         })
                     }
@@ -128,15 +190,85 @@ Music.get('/:id(\\d+)/image', async(req, res, next) => {
 })
 
 Music.put('/:id(\\d+)/image', async(req, res, next) => {
+    const { file } = req.body;
 
+    if (!file || file == "") {
+        rest.SendErrorBadRequest(res, Error.ArgumentError("No Image Received"))
+        return;
+    }
+
+    MusicDBHelper.Exists({
+        index: parseInt(req.params.id),
+        onSuccess: (Exists) => {
+            if (!Exists) {
+                rest.SendErrorNotFound(res, Error.ArgumentError())
+                return;
+            }
+            
+            FileSystem.VerifyBase64File({
+                File: file,
+                onSuccess: (cover) => {
+                    FileSystem.Write({
+                        fileName: `${Directory}/${req.params.id}/${req.params.id}.png`,
+                        data: cover.split('base64,')[1],
+                        options: 'base64',
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                    })   
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.FSSaveError())
+            })
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Music.get('/:id(\\d+)/music', async(req, res, next) => {
-
+    MusicDBHelper.Exists({
+        index: parseInt(req.params.id),
+        onSuccess: (Exists) => {
+            if (!Exists) {
+                rest.SendErrorNotFound(res, Error.ArgumentError())
+                return
+            }
+            res.sendFile(`${FileSystem.baseURL}/${Directory}/${req.params.id}/${req.params.id}.mp3`)
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Music.put('/:id(\\d+)/music', async(req, res, next) => {
+    const { file } = req.body;
 
+    if (!file || file == "") {
+        rest.SendErrorBadRequest(res, Error.ArgumentError("No Image Received"))
+        return;
+    }
+
+    MusicDBHelper.Exists({
+        index: parseInt(req.params.id),
+        onSuccess: (Exists) => {
+            if (!Exists) {
+                rest.SendErrorNotFound(res, Error.ArgumentError())
+                return;
+            }
+            
+            FileSystem.VerifyBase64File({
+                File: file,
+                onSuccess: (musicFile) => {
+                    FileSystem.Write({
+                        fileName: `${Directory}/${req.params.id}/${req.params.id}.mp3`,
+                        data: musicFile.split('base64,')[1],
+                        options: 'base64',
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                    })   
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.FSSaveError())
+            })
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 export default Music;

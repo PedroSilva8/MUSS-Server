@@ -3,17 +3,14 @@ import FileSystem from '@Global/fileSystem/fileSystem'
 import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 
+import { ArtistDB } from '@Interface/database'
+
 import express from 'express'
 import { decompress } from 'lz-string'
 
 const Artist = express.Router()
 
 const Directory = "artist"
-
-export interface ArtistDB {
-    id?: number
-    name: string
-}
 
 const ArtistDBHelper = new DBHelper<ArtistDB>("artist");
 
@@ -36,7 +33,7 @@ Artist.post('/', async(req, res, next) => {
     }
 
     //Check File
-    var FinalImage = decompress(unescape(file));
+    var FinalImage = unescape(file);
 
     if (!FinalImage) {
         rest.SendErrorBadRequest(res, Error.DecodeError())
@@ -125,25 +122,19 @@ Artist.put('/:id(\\d+)/image', async(req, res, next) => {
                 return;
             }
             
-            var FinalImage = decompress(unescape(file));
-
-            if (!FinalImage) {
-                rest.SendErrorBadRequest(res, Error.DecodeError())
-                return;
-            }
-            
-            if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2) {
-                rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
-                return;
-            }
-
-            FileSystem.Write({
-                fileName: `${Directory}/images/${req.params.id}.png`,
-                data: FinalImage.split('base64,')[1],
-                options: 'base64',
-                onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
-                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-            });
+            FileSystem.VerifyBase64File({
+                File: file,
+                onSuccess: (cover) => {
+                    FileSystem.Write({
+                        fileName: `${Directory}/images/${req.params.id}.png`,
+                        data: cover.split('base64,')[1],
+                        options: 'base64',
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                    });
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.DecodeError())
+            })
         },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
