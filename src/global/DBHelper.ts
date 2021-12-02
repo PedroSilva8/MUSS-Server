@@ -110,7 +110,7 @@ export default class DBHelper<T extends {}> {
         DatabaseHelper.UpdateWithId({
             target: this.Target,
             index: props.index.toString(),
-            data: props.data,
+            data: {...props.data, id: undefined},
             onSuccess: props.onSuccess,
             onError: props.onError
         })

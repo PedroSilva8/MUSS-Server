@@ -163,12 +163,15 @@ export default class DatabaseHelper {
         var setQuery = "";
         var Arguments = [];        
         for (let key in props.data) {
-            setQuery += `, \`${key}\`=?`
-            Arguments.push(props.data[key]);
+            if (props.data[key]) {
+                setQuery += `, \`${key}\`=?`
+                Arguments.push(props.data[key]);
+            }
         }
 
         Arguments.push(props.index);
         setQuery = setQuery.slice(1);
+
         Database.SimpleQuery({ 
             query: `UPDATE ${props.target} SET ${setQuery} WHERE id=?`,
             arguments: Arguments,
