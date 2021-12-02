@@ -15,5 +15,5 @@ export interface MusicDB {
     album_id: number
     name: string
     description: string
-    length: string
+    length?: string
 }

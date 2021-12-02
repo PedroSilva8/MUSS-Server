@@ -14,7 +14,7 @@ const PORT = 3000;
 database.CreatePool({
     connectionLimit: 10,
     database: "music_server",
-    host: "192.168.2.170",
+    host: "localhost",
     password: "root",
     user: "root"
 });

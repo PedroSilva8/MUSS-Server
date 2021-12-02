@@ -7,7 +7,7 @@ import RegexHelper from '@Global/RegexHelper'
 import { AlbumDB, MusicDB } from '@Interface/database'
 
 import express from 'express'
-import { decompress } from 'lz-string'
+import getAudioDurationInSeconds from 'get-audio-duration'
 
 const Music = express.Router()
 
@@ -15,6 +15,18 @@ const Directory = "music"
 
 const MusicDBHelper = new DBHelper<MusicDB>("music");
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
+
+const updateMusicLength = (music: MusicDB, file: string) => {
+    getAudioDurationInSeconds(`${FileSystem.baseURL}/${file}`).then((duration) => {
+        MusicDBHelper.Update({
+            index: music.id,
+            data: {
+                ...music,
+                length: new Date(duration * 1000).toISOString().substr(11, 8)
+            }
+        })
+    })
+}
 
 Music.get('/', async(req, res, next) => {
     const album_id = req.query.album_id as string;
@@ -99,9 +111,12 @@ Music.post('/', async(req, res, next) => {
                             fileName: `${Directory}/${Result[0].id}/${Result[0].id}.mp3`,
                             data: dMusic.split('base64,')[1],
                             options: 'base64',
-                            onSuccess: () => (!coverError) ? rest.SendSuccess(res, Error.SuccessError(Result, Result.length)) : () => { },
+                            onSuccess: () => (!coverError) ? () => { 
+                                updateMusicLength(Result[0], `${Directory}/${Result[0].id}/${Result[0].id}.mp3`)
+                                rest.SendSuccess(res, Error.SuccessError(Result, Result.length)) 
+                            } : () => { },
                             onError: (Message) => (!coverError) ? rest.SendErrorInternalServer(res, Error.ArgumentError(Message)) : () => { }
-                        });  
+                        });
                 },
                 onError: () => rest.SendErrorInternalServer(res, Error.FSCreateError())
             })
@@ -133,8 +148,7 @@ Music.put('/:id(\\d+)', async(req, res, next) => {
         data: {
             album_id: album_id,
             description: description,
-            name: name,
-            length: "00:00:00"
+            name: name
         },
         onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
         onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
@@ -245,10 +259,10 @@ Music.put('/:id(\\d+)/music', async(req, res, next) => {
         return;
     }
 
-    MusicDBHelper.Exists({
+    MusicDBHelper.Get({
         index: parseInt(req.params.id),
-        onSuccess: (Exists) => {
-            if (!Exists) {
+        onSuccess: (Music) => {
+            if (!Music) {
                 rest.SendErrorNotFound(res, Error.ArgumentError())
                 return;
             }
@@ -260,7 +274,10 @@ Music.put('/:id(\\d+)/music', async(req, res, next) => {
                         fileName: `${Directory}/${req.params.id}/${req.params.id}.mp3`,
                         data: musicFile.split('base64,')[1],
                         options: 'base64',
-                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onSuccess: () => {
+                            updateMusicLength(Music, `${Directory}/${req.params.id}/${req.params.id}.mp3`)
+                            rest.SendSuccess(res, Error.SuccessError())
+                        },
                         onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
                     })   
                 },
