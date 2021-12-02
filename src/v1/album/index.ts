@@ -4,6 +4,8 @@ import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 import RegexHelper from '@Global/RegexHelper'
 
+import { AlbumDB } from '@Interface/database'
+
 import express from 'express'
 import { decompress } from 'lz-string'
 
@@ -11,18 +13,19 @@ const Album = express.Router()
 
 const Directory = "album"
 
-export interface AlbumDB {
-    id?: number
-    artist_id: number
-    name: string
-    description: string
-}
-
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
 
 Album.get('/', async(req, res, next) => {
     AlbumDBHelper.GetAll({
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    }) 
+})
+
+Album.get('/:id(\\d+)', async(req, res, next) => {
+    AlbumDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError([Result])),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     }) 
 })

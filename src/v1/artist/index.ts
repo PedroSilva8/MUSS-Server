@@ -3,17 +3,14 @@ import FileSystem from '@Global/fileSystem/fileSystem'
 import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 
+import { ArtistDB } from '@Interface/database'
+
 import express from 'express'
 import { decompress } from 'lz-string'
 
 const Artist = express.Router()
 
 const Directory = "artist"
-
-export interface ArtistDB {
-    id?: number
-    name: string
-}
 
 const ArtistDBHelper = new DBHelper<ArtistDB>("artist");
 

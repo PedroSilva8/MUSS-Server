@@ -4,20 +4,14 @@ import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 import RegexHelper from '@Global/RegexHelper'
 
+import { AlbumDB, MusicDB } from '@Interface/database'
+
 import express from 'express'
 import { decompress } from 'lz-string'
-import { AlbumDB } from '../album'
 
 const Music = express.Router()
 
 const Directory = "music"
-
-export interface MusicDB {
-    id?: number
-    album_id: number
-    name: string
-    description: string
-}
 
 const MusicDBHelper = new DBHelper<MusicDB>("music");
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
@@ -84,21 +78,21 @@ Music.post('/', async(req, res, next) => {
             FileSystem.MakeDir({
                 Dir: `${Directory}/${Result[0].id}/`,
                 onSuccess: () => {
+                    var coverError = false
                     if (dCover)
                         FileSystem.Write({
                             fileName: `${Directory}/${Result[0].id}/${Result[0].id}.png`,
                             data: dCover.split('base64,')[1],
                             options: 'base64',
-                            onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
-                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                            onError: (Message) => { rest.SendErrorInternalServer(res, Error.ArgumentError(Message)); coverError = true }
                         });
                     if (dMusic)
                         FileSystem.Write({
                             fileName: `${Directory}/${Result[0].id}/${Result[0].id}.mp3`,
                             data: dMusic.split('base64,')[1],
                             options: 'base64',
-                            onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
-                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                            onSuccess: () => (!coverError) ? rest.SendSuccess(res, Error.SuccessError(Result, Result.length)) : () => { },
+                            onError: (Message) => (!coverError) ? rest.SendErrorInternalServer(res, Error.ArgumentError(Message)) : () => { }
                         });  
                 },
                 onError: () => rest.SendErrorInternalServer(res, Error.FSCreateError())

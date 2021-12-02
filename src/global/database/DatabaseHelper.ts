@@ -9,12 +9,16 @@ export interface IDBArgument {
     join?: 'OR' | 'AND'
 }
 
+export interface IDBOrderBy {
+    orderBy: string
+    orderDir?: 'ASC' | 'DESC'
+}
+
 export interface IDBHelperGetAll {
     target: string
     arguments?: IDBArgument[]
-    orderBy?: string
-    orderDir?: 'ASC' | 'DESC'
-    limit?: string
+    orderBy?: IDBOrderBy
+    limit?: number
     offset?: string
     onSuccess?: (Message: any) => void
     onError?: (Message: any) => void
@@ -87,9 +91,9 @@ export default class DatabaseHelper {
         var OrderBy = ""
 
         if (props.orderBy) {
-            OrderBy = "ORDER BY `" + props.orderBy + "`"
-            if (props.orderDir)
-                OrderBy += " " + props.orderDir
+            OrderBy = "ORDER BY `" + props.orderBy.orderBy + "`"
+            if (props.orderBy.orderDir)
+                OrderBy += " " + props.orderBy.orderDir
         }
 
         var limit = ""
