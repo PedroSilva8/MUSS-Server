@@ -35,6 +35,14 @@ Music.get('/', async(req, res, next) => {
     })
 })
 
+Music.get('/:id(\\d+)', async(req, res, next) => {
+    MusicDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError([Result])),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    }) 
+})
+
 Music.post('/', async(req, res, next) => {
     const { album_id, name, description, music, cover } = req.body;
 
@@ -73,7 +81,7 @@ Music.post('/', async(req, res, next) => {
     }
 
     MusicDBHelper.Create({
-        data: { album_id: album_id, name: name, description: description },
+        data: { album_id: album_id, name: name, description: description, length: "00:00:00" },
         onSuccess: (Result) => {
             FileSystem.MakeDir({
                 Dir: `${Directory}/${Result[0].id}/`,
@@ -125,7 +133,8 @@ Music.put('/:id(\\d+)', async(req, res, next) => {
         data: {
             album_id: album_id,
             description: description,
-            name: name
+            name: name,
+            length: "00:00:00"
         },
         onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
         onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
