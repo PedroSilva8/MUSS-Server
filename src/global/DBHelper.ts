@@ -39,6 +39,12 @@ export interface ICreate<T> {
     onError?: (Error: any) => void
 }
 
+export interface ICountColumn<T> {
+    column: string,
+    onSuccess?: (Result: number) => void
+    onError?: (Error: any) => void
+}
+
 export interface IDelete {
     index: number,
     onSuccess?: () => void
@@ -130,6 +136,15 @@ export default class DBHelper<T extends {}> {
             index: props.index.toString(),
             target: this.Target,
             onSuccess: props.onSuccess,
+            onError: props.onError
+        })
+    }
+
+    CountColumn = (props: ICountColumn<T>) =>  {
+        DatabaseHelper.Custom({
+            query: "SELECT SUM(`" + props.column + "`) as " + props.column + " FROM `user`",
+            arguments: [],
+            onSuccess: (data) => { if (props.onSuccess) props.onSuccess(data[0].isAdmin) },
             onError: props.onError
         })
     }

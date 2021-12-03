@@ -17,3 +17,10 @@ export interface MusicDB {
     description: string
     length?: string
 }
+
+export interface UserDB {
+    id?: number
+    name: string
+    password?: string
+    isAdmin: "1" | "0"
+}

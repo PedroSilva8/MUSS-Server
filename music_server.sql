@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Dec 02, 2021 at 04:44 PM
+-- Generation Time: Dec 03, 2021 at 04:08 PM
 -- Server version: 10.6.5-MariaDB
 -- PHP Version: 8.0.13
 
@@ -59,6 +59,19 @@ CREATE TABLE `music` (
   `length` time NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user`
+--
+
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL,
+  `name` varchar(63) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isAdmin` tinyint(1) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -67,7 +80,8 @@ CREATE TABLE `music` (
 -- Indexes for table `album`
 --
 ALTER TABLE `album`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_artist_id` (`artist_id`);
 
 --
 -- Indexes for table `artist`
@@ -79,6 +93,13 @@ ALTER TABLE `artist`
 -- Indexes for table `music`
 --
 ALTER TABLE `music`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_album_id` (`album_id`);
+
+--
+-- Indexes for table `user`
+--
+ALTER TABLE `user`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -102,6 +123,28 @@ ALTER TABLE `artist`
 --
 ALTER TABLE `music`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user`
+--
+ALTER TABLE `user`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `album`
+--
+ALTER TABLE `album`
+  ADD CONSTRAINT `FK_artist_id` FOREIGN KEY (`artist_id`) REFERENCES `artist` (`id`);
+
+--
+-- Constraints for table `music`
+--
+ALTER TABLE `music`
+  ADD CONSTRAINT `FK_album_id` FOREIGN KEY (`album_id`) REFERENCES `album` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
