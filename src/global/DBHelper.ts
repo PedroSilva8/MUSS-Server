@@ -1,54 +1,61 @@
 import DatabaseHelper, { IDBArgument, IDBOrderBy } from '@Database/DatabaseHelper'
+import { MysqlError } from 'mysql';
 
 export interface IGetAll<T> {
     limit?: number
     orderBy?: IDBOrderBy
     onSuccess?: (Result: T[]) => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface IGetWith<T> {
     arguments: IDBArgument[]
     orderBy?: IDBOrderBy
-    onSuccess?: (Result: T[]) => void
-    onError?: (Error: any) => void
+    onSuccess?: (Result: T[]) =>  void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface IGet<T> {
     index: number
     onSuccess?: (Result: T | undefined) => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface IExists<T> {
     index: number,
     onSuccess?: (Result: boolean) => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface IUpdate<T> {
     index: number
     data: T
     onSuccess?: () => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface ICreate<T> {
     data: T
     onSuccess?: (Result: T[]) => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface ICountColumn<T> {
     column: string,
     onSuccess?: (Result: number) => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
 }
 
 export interface IDelete {
     index: number,
     onSuccess?: () => void
-    onError?: (Error: any) => void
+    onError?: (Error: MysqlError) => void
+}
+
+export interface IDeleteWhere {
+    arguments: IDBArgument[],
+    onSuccess?: () => void
+    onError?: (Error: MysqlError) => void
 }
 
 export default class DBHelper<T extends {}> {
@@ -66,11 +73,12 @@ export default class DBHelper<T extends {}> {
 
     DataToList = (data: any) : T[] => {
         var List: T[] = []
-        data.forEach((value: any) => {
-            var Value = this.DataToValue(value);
-            if (Value)
-                List.push(Value)
-        })
+        if (data.forEach)
+            data.forEach((value: any) => {
+                var Value = this.DataToValue(value);
+                if (Value)
+                    List.push(Value)
+            })
         return List
     }
 
@@ -135,6 +143,22 @@ export default class DBHelper<T extends {}> {
         DatabaseHelper.DeleteWithId({
             index: props.index.toString(),
             target: this.Target,
+            onSuccess: props.onSuccess,
+            onError: props.onError
+        })
+    }
+
+    DeleteWhere = (props: IDeleteWhere) => {
+        var WhereStatement = "";
+        if (props.arguments && props.arguments.length != 0) {
+            WhereStatement = "WHERE "
+            props.arguments.forEach(e => WhereStatement += "`" + e.column + "`" + e.comparison + "\"" + e.value + "\" " + (e.join ? e.join : ""))
+            WhereStatement = WhereStatement.substring(0, WhereStatement.lastIndexOf(" ") + 1)
+        }
+
+        DatabaseHelper.Custom({
+            query: "DELETE FROM `" + this.Target + "` " + WhereStatement,
+            arguments: [],
             onSuccess: props.onSuccess,
             onError: props.onError
         })

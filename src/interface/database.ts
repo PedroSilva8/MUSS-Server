@@ -24,3 +24,9 @@ export interface UserDB {
     password?: string
     isAdmin: "1" | "0"
 }
+
+export interface TokenDB {
+    userId: number
+    token: string
+    expiration_date: Date | string
+}

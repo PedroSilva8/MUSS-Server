@@ -4,11 +4,11 @@ import rest from '@Global/Rest'
 import DBHelper from '@Global/DBHelper'
 import RegexHelper from '@Global/RegexHelper'
 
-import { UserDB } from '@Interface/database'
+import { TokenDB, UserDB } from '@Interface/database'
 
 import express from 'express'
 
-import { pbkdf2 } from 'crypto'
+import crypto, { pbkdf2 } from 'crypto'
 
 function hashPassword (password: string, onSuccess: (hash: string) => void, onError: () => void) {
     
@@ -21,10 +21,11 @@ function hashPassword (password: string, onSuccess: (hash: string) => void, onEr
 
 const User = express.Router()
 
-const UserDBHelper = new DBHelper<UserDB>("user");
+const userDBHelper = new DBHelper<UserDB>("user");
+const tokenDBHelper = new DBHelper<TokenDB>("token");
 
 User.get('/', async(req, res, next) => {
-    UserDBHelper.GetAll({
+    userDBHelper.GetAll({
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
@@ -49,7 +50,7 @@ User.post('/', async(req, res, next) => {
         }
 
         hashPassword(password, (hash) => {
-            UserDBHelper.Create({
+            userDBHelper.Create({
                 data: {
                     name,
                     password: hash,
@@ -65,7 +66,7 @@ User.post('/', async(req, res, next) => {
 
 const UpdateUser = (index: number, password: string, name: string, isAdmin: string, res: any) => {
     hashPassword(password ? password : "", (hash) => {
-        UserDBHelper.Update({
+        userDBHelper.Update({
             index: index,
             data: password && password != "" ? {
                 name,
@@ -101,11 +102,11 @@ User.put('/:id(\\d+)', async(req, res, next) => {
     }
 
     //Check if is last admin
-    UserDBHelper.CountColumn({
+    userDBHelper.CountColumn({
         column: 'isAdmin',
         onSuccess: (length) => {
             if (length == 1 && isAdmin == "false") {
-                UserDBHelper.Get({
+                userDBHelper.Get({
                     index: parseInt(req.params.id),
                     onSuccess: (user) => {
                         if (user.isAdmin) {
@@ -127,11 +128,11 @@ User.put('/:id(\\d+)', async(req, res, next) => {
 
 
 User.delete('/:id(\\d+)', async(req, res, next) => {
-    UserDBHelper.CountColumn({
+    userDBHelper.CountColumn({
         column: 'isAdmin',
         onSuccess: (length) => {
             if (length == 1) {
-                UserDBHelper.Get({
+                userDBHelper.Get({
                     index: parseInt(req.params.id),
                     onSuccess: (user) => {
                         if (user.isAdmin) {
@@ -139,7 +140,7 @@ User.delete('/:id(\\d+)', async(req, res, next) => {
                             return
                         }
 
-                        UserDBHelper.Delete({
+                        userDBHelper.Delete({
                             index: parseInt(req.params.id),
                             onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
                             onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
@@ -149,13 +150,56 @@ User.delete('/:id(\\d+)', async(req, res, next) => {
                 })
             }
             else
-                UserDBHelper.Delete({
+                userDBHelper.Delete({
                     index: parseInt(req.params.id),
                     onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
                     onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
                 }) 
         },
         onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+    })
+})
+
+User.get('/login', async(req, res, next) => {
+    const { name, password } = req.query
+
+    userDBHelper.GetWhere({
+        arguments: [
+            { 
+                column: 'name',
+                comparison: '=',
+                value: name as string
+            }
+        ],
+        onSuccess: (Result) => {
+            if (Result.length == 0) {
+                rest.SendErrorNotFound(res, Error.ArgumentError("User Dosn't Exist"))
+                return;
+            }
+
+            hashPassword(password as string, (hash) => {
+                if (Result[0].password == hash) {
+                    var token = crypto.createHash('sha256').update(name + Math.random().toString() + Date.now().toString()).digest('base64')
+                    
+                    const date = new Date(Date.now())
+                    date.setMonth(date.getMonth() + 1)
+
+                    tokenDBHelper.Create({
+                        data: {
+                            userId: Result[0].id,
+                            token: token,
+                            expiration_date: date
+                        },
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError(token)),
+                        onError: (err) => rest.SendErrorInternalServer(res, Error.SQLError(err))
+                    })
+                }
+                else
+                    rest.SendErrorForbidden(res, Error.ArgumentError("Invalid Password"))
+            },
+            () => rest.SendErrorInternalServer(res, Error.EncondError("Failed to hash password")))
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
 })
 
