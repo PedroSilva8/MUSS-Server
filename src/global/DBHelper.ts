@@ -66,7 +66,7 @@ export default class DBHelper<T extends {}> {
     }
 
     DataToValue = (data: any) : T | undefined => {
-        if (!data || !data.id)
+        if (!data)
             return undefined;
         return data
     }

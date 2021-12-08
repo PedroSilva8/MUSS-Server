@@ -203,4 +203,34 @@ User.get('/login', async(req, res, next) => {
     })
 })
 
+User.get('/token', async(req, res, next) => {
+    const { token } = req.query
+
+    tokenDBHelper.GetWhere({
+        arguments: [
+            {
+                column: 'token',
+                comparison: '=',
+                value: token as string
+            }
+        ],
+        onSuccess: (Result) => {
+            if (Result.length == 0) {
+                rest.SendErrorNotFound(res, Error.NotFoundError())
+                return;
+            }
+
+            userDBHelper.Get({
+                index: Result[0].userId,
+                onSuccess: (user) => {
+                    user.password = ""
+                    rest.SendSuccess(res, Error.SuccessError(user))
+                },
+                onError: () => {}
+            })
+        },
+        onError: () => { }
+    })
+})
+
 export default User;
