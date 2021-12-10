@@ -15,7 +15,14 @@ const Directory = "artist"
 const ArtistDBHelper = new DBHelper<ArtistDB>("artist");
 
 Artist.get('/', async(req, res, next) => {
+    var { page } = req.body;
+
+    if (isNaN(parseInt(page)))
+        page = undefined
+
     ArtistDBHelper.GetAll({
+        limit: 20,
+        offset: page,
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     }) 

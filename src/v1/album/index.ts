@@ -16,7 +16,14 @@ const Directory = "album"
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
 
 Album.get('/', async(req, res, next) => {
+    var { page } = req.body;
+
+    if (isNaN(parseInt(page)))
+        page = undefined
+        
     AlbumDBHelper.GetAll({
+        limit: 20,
+        offset: page ? page as number * 20 : 0,
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     }) 

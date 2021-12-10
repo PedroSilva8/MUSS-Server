@@ -3,6 +3,7 @@ import { MysqlError } from 'mysql';
 
 export interface IGetAll<T> {
     limit?: number
+    offset?: number
     orderBy?: IDBOrderBy
     onSuccess?: (Result: T[]) => void
     onError?: (Error: MysqlError) => void
@@ -86,6 +87,7 @@ export default class DBHelper<T extends {}> {
         DatabaseHelper.GetAll({
             target: this.Target,
             limit: props.limit,
+            offset: props.offset?.toString(),
             orderBy: props.orderBy,
             onSuccess: (data) => { if (props.onSuccess) props.onSuccess(this.DataToList(data)) },
             onError: props.onError
