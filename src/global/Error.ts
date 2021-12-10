@@ -1,22 +1,24 @@
 export default class Error {
-    static GetErroCode = ( type: 'SUCCESS' | 'ARGUMENTS' | 'SQL_ARGUMENT' | 'SQL_ERROR' | 'FS' | 'ANOTHER' | 'ENCODING' | 'NOT_FOUND') => {
+    static GetErroCode = ( type: 'SUCCESS' | 'ARGUMENTS' | 'SQL_ARGUMENT' | 'SQL_ERROR' | 'FS' | 'ANOTHER' | 'ENCODING' | 'NOT_FOUND' | 'PERMISSION') => {
         switch (type) {
             case 'SUCCESS':
-                return 0;
+                return 0
             case 'ARGUMENTS':
-                return 1;
+                return 1
             case 'SQL_ARGUMENT':
-                return 2;
+                return 2
             case 'SQL_ERROR':
-                return 3;
+                return 3
             case 'FS':  
-                return 4;
+                return 4
             case 'ENCODING':
-                return 5;
+                return 5
             case 'NOT_FOUND':
-                return 6;
+                return 6
+            case 'PERMISSION':
+                return 7
             case 'ANOTHER':
-                return -1;
+                return -1
         }
     }
 
@@ -70,5 +72,9 @@ export default class Error {
 
     static DecodeError = (Data? : any, DataSize?: number) => {
         return Error.GenerateErrorMesssage(Error.GetErroCode('ENCODING'), 'Failed To Decode Data', DataSize, Data)
+    }
+
+    static PermissionError = (Data? : any, DataSize?: number) => {
+        return Error.GenerateErrorMesssage(Error.GetErroCode('PERMISSION'), 'You don\'t have permission to do this', DataSize, Data)
     }
 }

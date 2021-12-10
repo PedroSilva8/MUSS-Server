@@ -146,7 +146,7 @@ export default class DatabaseHelper {
         setQuery = setQuery.slice(1);
 
         Database.SimpleQuery({ 
-            query: `INSERT INTO \`${props.target}\` (${setQuery}) VALUES (${argumentPlacers})`,
+            query: `INSERT INTO \`${props.target}\` (${setQuery}) VALUES (${argumentPlacers}) RETURNING *`,
             arguments: Arguments,
             onError: props.onError,
             onSuccess: props.onSuccess

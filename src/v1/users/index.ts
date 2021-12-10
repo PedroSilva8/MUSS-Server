@@ -9,6 +9,7 @@ import { TokenDB, UserDB } from '@Interface/database'
 import express from 'express'
 
 import crypto, { pbkdf2 } from 'crypto'
+import { GetUserFromToken, IsUserAdmin } from '../token'
 
 function hashPassword (password: string, onSuccess: (hash: string) => void, onError: () => void) {
     
@@ -32,36 +33,44 @@ User.get('/', async(req, res, next) => {
 })
 
 User.post('/', async(req, res, next) => {
-    const { name, password, isAdmin } = req.body
+    const { name, password, isAdmin, token } = req.body
 
-        //Check Arguments
-        var invalidArguments = [];
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
 
-        if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
-            invalidArguments.push("name")
-        if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, password))
-            invalidArguments.push("password")
-        if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, isAdmin))
-            invalidArguments.push("description")        
-    
-        if (invalidArguments.length != 0) {
-            res.status(500).send(Error.ArgumentError(invalidArguments))
-            return;
-        }
+            //Check Arguments
+            var invalidArguments = [];
 
-        hashPassword(password, (hash) => {
-            userDBHelper.Create({
-                data: {
-                    name,
-                    password: hash,
-                    isAdmin : isAdmin ? "1" : "0"
-                },
-                onSuccess: (users) => rest.SendSuccess(res, Error.SuccessError(users)),
-                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-            })
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+                invalidArguments.push("name")
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, password))
+                invalidArguments.push("password")
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, isAdmin))
+                invalidArguments.push("description")        
+            
+            if (invalidArguments.length != 0) {
+                res.status(500).send(Error.ArgumentError(invalidArguments))
+                return;
+            }
+
+            hashPassword(password, (hash) => {
+                userDBHelper.Create({
+                    data: {
+                        name,
+                        password: hash,
+                        isAdmin : isAdmin ? "1" : "0"
+                    },
+                    onSuccess: (users) => rest.SendSuccess(res, Error.SuccessError(users)),
+                    onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                })
+            },
+            () => rest.SendErrorInternalServer(res, Error.ArgumentError("Failed to hash password")))
         },
-        () => rest.SendErrorInternalServer(res, Error.ArgumentError("Failed to hash password")))
-    
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 const UpdateUser = (index: number, password: string, name: string, isAdmin: string, res: any) => {
@@ -84,79 +93,95 @@ const UpdateUser = (index: number, password: string, name: string, isAdmin: stri
 }
 
 User.put('/:id(\\d+)', async(req, res, next) => {
-    const { name, password, isAdmin } = req.body
+    const { name, password, isAdmin, token } = req.body
 
-    //Check Arguments
-    var invalidArguments = [];
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
 
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
-        invalidArguments.push("name")
-    if (password && password != "" && !RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, password))
-        invalidArguments.push("password")
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, isAdmin))
-        invalidArguments.push("description")        
+            //Check Arguments
+            var invalidArguments = [];
 
-    if (invalidArguments.length != 0) {
-        res.status(500).send(Error.ArgumentError(invalidArguments))
-        return;
-    }
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+                invalidArguments.push("name")
+            if (password && password != "" && !RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, password))
+                invalidArguments.push("password")
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, isAdmin))
+                invalidArguments.push("description")        
 
-    //Check if is last admin
-    userDBHelper.CountColumn({
-        column: 'isAdmin',
-        onSuccess: (length) => {
-            if (length == 1 && isAdmin == "false") {
-                userDBHelper.Get({
-                    index: parseInt(req.params.id),
-                    onSuccess: (user) => {
-                        if (user.isAdmin) {
-                            rest.SendErrorInternalServer(res, Error.ArgumentError("Cant Remove Last Admin Permissions"))
-                            return
-                        }
+            if (invalidArguments.length != 0)
+                return rest.SendErrorBadRequest(res, Error.ArgumentError(invalidArguments, invalidArguments.length))
 
+            //Check if is last admin
+            userDBHelper.CountColumn({
+                column: 'isAdmin',
+                onSuccess: (length) => {
+                    if (length == 1 && isAdmin == "false") {
+                        userDBHelper.Get({
+                            index: parseInt(req.params.id),
+                            onSuccess: (user) => {
+                                if (user.isAdmin)
+                                    return rest.SendErrorInternalServer(res, Error.ArgumentError("Cant Remove Last Admin Permissions"))
+                            
+                                UpdateUser(parseInt(req.params.id), password, name, isAdmin, res)
+                            },
+                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                        })
+                    }
+                    else
                         UpdateUser(parseInt(req.params.id), password, name, isAdmin, res)
-                    },
-                    onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-                })
-            }
-            else
-                UpdateUser(parseInt(req.params.id), password, name, isAdmin, res)
+                },
+                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+            })
         },
-        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
 })
 
 
 User.delete('/:id(\\d+)', async(req, res, next) => {
-    userDBHelper.CountColumn({
-        column: 'isAdmin',
-        onSuccess: (length) => {
-            if (length == 1) {
-                userDBHelper.Get({
-                    index: parseInt(req.params.id),
-                    onSuccess: (user) => {
-                        if (user.isAdmin) {
-                            rest.SendErrorInternalServer(res, Error.ArgumentError("Cant Remove Last Admin Permissions"))
-                            return
-                        }
+    const { token } = req.body
 
+    IsUserAdmin({
+        token: token,
+        onSuccess: (isAdmin) => {
+            if (!isAdmin)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
+
+            userDBHelper.CountColumn({
+                column: 'isAdmin',
+                onSuccess: (length) => {
+                    if (length == 1) {
+                        userDBHelper.Get({
+                            index: parseInt(req.params.id),
+                            onSuccess: (user) => {
+                                if (user.isAdmin) {
+                                    rest.SendErrorInternalServer(res, Error.ArgumentError("Cant Remove Last Admin Permissions"))
+                                    return
+                                }
+        
+                                userDBHelper.Delete({
+                                    index: parseInt(req.params.id),
+                                    onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                                    onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+                                }) 
+                            },
+                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                        })
+                    }
+                    else
                         userDBHelper.Delete({
                             index: parseInt(req.params.id),
                             onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
                             onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
                         }) 
-                    },
-                    onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-                })
-            }
-            else
-                userDBHelper.Delete({
-                    index: parseInt(req.params.id),
-                    onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
-                    onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
-                }) 
+                },
+                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+            })
         },
-        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
 })
 
@@ -206,30 +231,10 @@ User.get('/login', async(req, res, next) => {
 User.get('/token', async(req, res, next) => {
     const { token } = req.query
 
-    tokenDBHelper.GetWhere({
-        arguments: [
-            {
-                column: 'token',
-                comparison: '=',
-                value: token as string
-            }
-        ],
-        onSuccess: (Result) => {
-            if (Result.length == 0) {
-                rest.SendErrorNotFound(res, Error.NotFoundError())
-                return;
-            }
-
-            userDBHelper.Get({
-                index: Result[0].userId,
-                onSuccess: (user) => {
-                    user.password = ""
-                    rest.SendSuccess(res, Error.SuccessError(user))
-                },
-                onError: () => {}
-            })
-        },
-        onError: () => { }
+    GetUserFromToken({
+        token: token as string,
+        onSuccess: (user) => rest.SendSuccess(res, Error.SuccessError(user)),
+        onError: () => rest.SendErrorNotFound(res, Error.NotFoundError())
     })
 })
 
