@@ -17,3 +17,16 @@ export interface MusicDB {
     description: string
     length?: string
 }
+
+export interface UserDB {
+    id?: number
+    name: string
+    password?: string
+    isAdmin: "1" | "0"
+}
+
+export interface TokenDB {
+    userId: number
+    token: string
+    expiration_date: Date | string
+}

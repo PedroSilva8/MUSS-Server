@@ -7,7 +7,7 @@ import RegexHelper from '@Global/RegexHelper'
 import { AlbumDB } from '@Interface/database'
 
 import express from 'express'
-import { decompress } from 'lz-string'
+import { IsUserAdmin } from '../token'
 
 const Album = express.Router()
 
@@ -31,88 +31,109 @@ Album.get('/:id(\\d+)', async(req, res, next) => {
 })
 
 Album.post('/', async(req, res, next) => {
-    const { name, artist_id, description, file } = req.body;
+    const { name, artist_id, description, file, token } = req.body;
 
-    //Check Arguments
-    var invalidArguments = [];
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
 
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
-        invalidArguments.push("name")
-    if (!RegexHelper.IsInt(artist_id))
-        invalidArguments.push("artist")
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
-        invalidArguments.push("description")        
+            //Check Arguments
+            var invalidArguments = [];
 
-    if (invalidArguments.length != 0) {
-        res.status(500).send(Error.ArgumentError(invalidArguments));
-        return;
-    }
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+                invalidArguments.push("name")
+            if (!RegexHelper.IsInt(artist_id))
+                invalidArguments.push("artist")
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
+                invalidArguments.push("description")        
 
-    //Check File
-    var FinalImage = unescape(file);
-
-    if (!FinalImage) {
-        rest.SendErrorBadRequest(res, Error.DecodeError())
-        return;
-    }
-
-    if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2) {
-        rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
-        return;
-    }
-
-    AlbumDBHelper.Create({
-        data: { artist_id: artist_id, name: name, description: description },
-        onSuccess: (Result) => {
-            if (FinalImage) //For some reason if i don't do this check the program acusses FinalImage to be possible null when we already checked before
-                FileSystem.Write({
-                    fileName: `${Directory}/images/${Result[0].id}.png`,
-                    data: FinalImage.split('base64,')[1],
-                    options: 'base64',
-                    onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
-                    onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-                });  
-        },
-        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
-    }) 
-})
-
-Album.delete('/:id(\\d+)', async(req, res, next) => {
-    AlbumDBHelper.Delete({
-        index: parseInt(req.params.id),
-        onSuccess: () => {
-            FileSystem.Delete({
-                fileName: `${Directory}/images/${req.params.id}.png`,
-                onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
-                onError: () => rest.SendErrorInternalServer(res, Error.FSDeleteError())
+            if (invalidArguments.length != 0)
+                return res.status(500).send(Error.ArgumentError(invalidArguments))
+        
+            //Check File
+            var FinalImage = unescape(file);
+        
+            if (!FinalImage)
+                return rest.SendErrorBadRequest(res, Error.DecodeError())
+        
+            if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2)
+                return rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
+        
+            AlbumDBHelper.Create({
+                data: { artist_id: artist_id, name: name, description: description },
+                onSuccess: (Result) => {
+                    if (FinalImage) //For some reason if i don't do this check the program acusses FinalImage to be possible null when we already checked before
+                        FileSystem.Write({
+                            fileName: `${Directory}/images/${Result[0].id}.png`,
+                            data: FinalImage.split('base64,')[1],
+                            options: 'base64',
+                            onSuccess: () => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
+                            onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                        });  
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
             })
         },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
-    }) 
+    })
+})
+
+Album.delete('/:id(\\d+)', async(req, res, next) => {
+    const { token } = req.body;
+
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
+            
+            AlbumDBHelper.Delete({
+                index: parseInt(req.params.id),
+                onSuccess: () => {
+                    FileSystem.Delete({
+                        fileName: `${Directory}/images/${req.params.id}.png`,
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: () => rest.SendSuccess(res, Error.SuccessError()) /* TODO: Log Failure on server side */
+                    })
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+            })      
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Album.put('/:id(\\d+)', async(req, res, next) => {
-    const { name, artist_id, description } = req.body;
+    const { name, artist_id, description, token } = req.body;
 
-    //Check Arguments
-    var invalidArguments = [];
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
 
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
-        invalidArguments.push("name")
-    if (!RegexHelper.IsInt(artist_id))
-        invalidArguments.push("artist")
-    if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
-        invalidArguments.push("description")        
+            //Check Arguments
+            var invalidArguments = [];
 
-    if (invalidArguments.length != 0) {
-        res.status(500).send(Error.ArgumentError(invalidArguments));
-        return;
-    }
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, name))
+                invalidArguments.push("name")
+            if (!RegexHelper.IsInt(artist_id))
+                invalidArguments.push("artist")
+            if (!RegexHelper.IsValidString(/^[\a-zA-ZÁ-ÿ0-9\-\_ -]{1,63}/, description))
+                invalidArguments.push("description")        
 
-    AlbumDBHelper.Update({
-        index: parseInt(req.params.id),
-        data: { id: parseInt(req.params.id), artist_id: artist_id, name: name, description: description },
-        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+            if (invalidArguments.length != 0)
+                return res.status(500).send(Error.ArgumentError(invalidArguments))
+        
+            AlbumDBHelper.Update({
+                index: parseInt(req.params.id),
+                data: { id: parseInt(req.params.id), artist_id: artist_id, name: name, description: description },
+                onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+            })      
+        },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
 })
@@ -131,40 +152,42 @@ Album.get('/:id(\\d+)/image', async(req, res, next) => {
 })
 
 Album.put('/:id(\\d+)/image', async(req, res, next) => {
-    const { file } = req.body;
+    const { file, token } = req.body;
 
-    if (!file || file == "") {
-        rest.SendErrorBadRequest(res, Error.ArgumentError("No Image Received"))
-        return;
-    }
-
-    AlbumDBHelper.Exists({
-        index: parseInt(req.params.id),
-        onSuccess: (exists) => {
-            if (!exists) {
-                rest.SendErrorNotFound(res, Error.ArgumentError())
-                return;
-            }
+    IsUserAdmin({
+        token: token,
+        onSuccess: (result) => {
+            if (!result)
+                return rest.SendErrorForbidden(res, Error.PermissionError())
             
-            var FinalImage = unescape(file);
-
-            if (!FinalImage) {
-                rest.SendErrorBadRequest(res, Error.DecodeError())
-                return;
-            }
-            
-            if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2) {
-                rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
-                return;
-            }
-
-            FileSystem.Write({
-                fileName: `${Directory}/images/${req.params.id}.png`,
-                data: FinalImage.split('base64,')[1],
-                options: 'base64',
-                onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
-                onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
-            });
+            if (!file || file == "")
+                return rest.SendErrorBadRequest(res, Error.ArgumentError("No Image Received"))
+        
+            AlbumDBHelper.Exists({
+                index: parseInt(req.params.id),
+                onSuccess: (exists) => {
+                    if (!exists)
+                        return rest.SendErrorNotFound(res, Error.ArgumentError())
+                    
+                    var FinalImage = unescape(file);
+        
+                    if (!FinalImage)
+                        return rest.SendErrorBadRequest(res, Error.DecodeError())
+                    
+                    if (!/[A-Za-z0-9+/=]/.test(FinalImage) || FinalImage.split('base64,').length != 2)
+                        return rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
+                        
+        
+                    FileSystem.Write({
+                        fileName: `${Directory}/images/${req.params.id}.png`,
+                        data: FinalImage.split('base64,')[1],
+                        options: 'base64',
+                        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+                        onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
+                    });
+                },
+                onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+            })
         },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

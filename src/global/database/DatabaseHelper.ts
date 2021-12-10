@@ -1,6 +1,7 @@
 import $ from 'jquery'
 
 import Database from '@Database/Database'
+import { MysqlError } from 'mysql';
 
 export interface IDBArgument {
     column: string
@@ -21,14 +22,14 @@ export interface IDBHelperGetAll {
     limit?: number
     offset?: string
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperGetWithId {
     index: string | number
     target: string
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperGetWith {
@@ -36,14 +37,14 @@ export interface IDBHelperGetWith {
     column: string
     target: string
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperCreate {
     target: string
     data: { [index: string]: string; }
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperUpdate {
@@ -51,21 +52,21 @@ export interface IDBHelperUpdate {
     target: string
     data: { [index: string]: string; }
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperDeleteWithId {
     index: string
     target: string
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IDBHelperCustom {
     query: string
     arguments: string[]
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export default class DatabaseHelper {
@@ -145,17 +146,10 @@ export default class DatabaseHelper {
         setQuery = setQuery.slice(1);
 
         Database.SimpleQuery({ 
-            query: `INSERT INTO \`${props.target}\` (${setQuery}) VALUES (${argumentPlacers})`,
+            query: `INSERT INTO \`${props.target}\` (${setQuery}) VALUES (${argumentPlacers}) RETURNING *`,
             arguments: Arguments,
             onError: props.onError,
-            onSuccess: (data) => {
-                DatabaseHelper.GetWithId({
-                    index: data.insertId,
-                    target: props.target,
-                    onSuccess: props.onSuccess,
-                    onError: props.onError
-                })
-            }
+            onSuccess: props.onSuccess
         });
     }
 

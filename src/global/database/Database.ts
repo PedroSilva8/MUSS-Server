@@ -1,4 +1,4 @@
-import mysql from 'mysql'
+import mysql, { MysqlError } from 'mysql'
 
 var pool: mysql.Pool | undefined;
 
@@ -6,7 +6,7 @@ export interface IQueryProps {
     query: string
     arguments?: string[]
     onSuccess?: (Message: any) => void
-    onError?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
 }
 
 export interface IQueryResult {

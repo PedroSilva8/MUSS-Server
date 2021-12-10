@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Dec 02, 2021 at 04:44 PM
--- Server version: 10.6.5-MariaDB
--- PHP Version: 8.0.13
+-- Tempo de geração: 10-Dez-2021 às 15:07
+-- Versão do servidor: 10.6.5-MariaDB
+-- versão do PHP: 8.0.13
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `music_server`
+-- Banco de dados: `music_server`
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `album`
+-- Estrutura da tabela `album`
 --
 
 CREATE TABLE `album` (
@@ -37,7 +37,7 @@ CREATE TABLE `album` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `artist`
+-- Estrutura da tabela `artist`
 --
 
 CREATE TABLE `artist` (
@@ -48,7 +48,7 @@ CREATE TABLE `artist` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `music`
+-- Estrutura da tabela `music`
 --
 
 CREATE TABLE `music` (
@@ -59,48 +59,91 @@ CREATE TABLE `music` (
   `length` time NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Indexes for dumped tables
+-- Estrutura da tabela `token`
+--
+
+CREATE TABLE `token` (
+  `userId` int(11) NOT NULL,
+  `token` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `expiration_date` date NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `user`
+--
+
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL,
+  `name` varchar(63) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isAdmin` tinyint(1) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Índices para tabelas despejadas
 --
 
 --
--- Indexes for table `album`
+-- Índices para tabela `album`
 --
 ALTER TABLE `album`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `artist`
+-- Índices para tabela `artist`
 --
 ALTER TABLE `artist`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `music`
+-- Índices para tabela `music`
 --
 ALTER TABLE `music`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- Índices para tabela `token`
+--
+ALTER TABLE `token`
+  ADD PRIMARY KEY (`userId`,`token`);
+
+--
+-- Índices para tabela `user`
+--
+ALTER TABLE `user`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- AUTO_INCREMENT de tabelas despejadas
 --
 
 --
--- AUTO_INCREMENT for table `album`
+-- AUTO_INCREMENT de tabela `album`
 --
 ALTER TABLE `album`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `artist`
+-- AUTO_INCREMENT de tabela `artist`
 --
 ALTER TABLE `artist`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `music`
+-- AUTO_INCREMENT de tabela `music`
 --
 ALTER TABLE `music`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `user`
+--
+ALTER TABLE `user`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 COMMIT;
 
