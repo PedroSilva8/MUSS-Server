@@ -25,6 +25,20 @@ const User = express.Router()
 const userDBHelper = new DBHelper<UserDB>("user");
 const tokenDBHelper = new DBHelper<TokenDB>("token");
 
+
+User.get('/pages', async(req, res, next) => {
+    var { PageLength } = req.query
+    
+    if (!RegexHelper.IsInt(PageLength as string))
+        PageLength = '20'
+
+    userDBHelper.GetPages({
+        pageLength: parseInt(PageLength as string),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError({ TotalPages: Result })),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
 User.get('/', async(req, res, next) => {
     userDBHelper.GetAll({
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 

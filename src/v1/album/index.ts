@@ -18,7 +18,7 @@ const AlbumDBHelper = new DBHelper<AlbumDB>("album");
 Album.get('/', async(req, res, next) => {
     var { page } = req.query;
 
-    if (isNaN(parseInt(page as string)))
+    if (isNaN(parseInt(page as string)) || parseInt(page as string) < 0)
         page = undefined
         
     AlbumDBHelper.GetAll({
@@ -26,7 +26,20 @@ Album.get('/', async(req, res, next) => {
         offset: (page ? parseInt(page as string) * 20 : 0),
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
-    }) 
+    })
+})
+
+Album.get('/pages', async(req, res, next) => {
+    var { PageLength } = req.query
+    
+    if (!RegexHelper.IsInt(PageLength as string))
+        PageLength = '20'
+
+    AlbumDBHelper.GetPages({
+        pageLength: parseInt(PageLength as string),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError({ TotalPages: Result })),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Album.get('/:id(\\d+)', async(req, res, next) => {

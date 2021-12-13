@@ -7,6 +7,7 @@ import { ArtistDB } from '@Interface/database'
 
 import express from 'express'
 import { IsUserAdmin } from '../token'
+import RegexHelper from '@Global/RegexHelper'
 
 const Artist = express.Router()
 
@@ -26,6 +27,19 @@ Artist.get('/', async(req, res, next) => {
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     }) 
+})
+
+Artist.get('/pages', async(req, res, next) => {
+    var { PageLength } = req.query
+    
+    if (!RegexHelper.IsInt(PageLength as string))
+        PageLength = '20'
+
+    ArtistDBHelper.GetPages({
+        pageLength: parseInt(PageLength as string),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError({ TotalPages: Result })),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
 })
 
 Artist.post('/', async(req, res, next) => {

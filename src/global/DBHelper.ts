@@ -1,6 +1,12 @@
 import DatabaseHelper, { IDBArgument, IDBOrderBy } from '@Database/DatabaseHelper'
 import { MysqlError } from 'mysql';
 
+export interface IGetPagesLeft {
+    pageLength: number,
+    onSuccess?: (Result: number) => void
+    onError?: (Error: MysqlError) => void
+}
+
 export interface IGetAll<T> {
     limit?: number
     offset?: number
@@ -81,6 +87,15 @@ export default class DBHelper<T extends {}> {
                     List.push(Value)
             })
         return List
+    }
+
+    GetPages = (props: IGetPagesLeft) => {
+        DatabaseHelper.Custom({
+            query: `SELECT CEIL(COUNT(*) / ${props.pageLength}) as 'Pages' FROM \`album\``,
+            arguments: [],
+            onSuccess: (Result) => (props.onSuccess && Result[0].Pages ? props.onSuccess(parseInt(Result[0].Pages)) : props.onError),
+            onError: props.onError
+        })
     }
 
     GetAll = (props: IGetAll<T>) => {
