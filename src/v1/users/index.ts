@@ -46,6 +46,17 @@ User.get('/', async(req, res, next) => {
     })
 })
 
+User.get('/:id(\\d+)', async(req, res, next) => {
+    userDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => {
+            Result.password = null
+            rest.SendSuccess(res, Error.SuccessError([Result]))
+        },
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
 User.post('/', async(req, res, next) => {
     const { name, password, isAdmin, token } = req.body
 
@@ -94,10 +105,10 @@ const UpdateUser = (index: number, password: string, name: string, isAdmin: stri
             data: password && password != "" ? {
                 name,
                 password: hash,
-                isAdmin: isAdmin == "true" ? "1" : '0'
+                isAdmin: isAdmin == "true" || "1" ? "1" : '0'
             }: {
                 name,
-                isAdmin: isAdmin == "true"? "1" : '0'
+                isAdmin: isAdmin == "true" || "1" ?  "1" : '0'
             },
             onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
             onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
@@ -132,7 +143,7 @@ User.put('/:id(\\d+)', async(req, res, next) => {
             userDBHelper.CountColumn({
                 column: 'isAdmin',
                 onSuccess: (length) => {
-                    if (length == 1 && isAdmin == "false") {
+                    if (length == 1 && isAdmin == "false" || isAdmin == "0") {
                         userDBHelper.Get({
                             index: parseInt(req.params.id),
                             onSuccess: (user) => {
