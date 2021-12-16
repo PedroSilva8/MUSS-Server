@@ -51,11 +51,11 @@ Music.get('/', async(req, res, next) => {
             value: album_id,
             comparison: '=',
         },
-            search ? {
+            ...(search ? [{
                 column: "name",
                 comparison: "LIKE",
                 value: `%${search as string}%`
-            } : null
+            }] : [])
         ],
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
