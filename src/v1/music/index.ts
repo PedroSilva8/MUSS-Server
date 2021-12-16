@@ -31,9 +31,17 @@ const updateMusicLength = (music: MusicDB, file: string) => {
 
 Music.get('/', async(req, res, next) => {
     const album_id = req.query.album_id as string;
+    var { search } = req.query;
 
     if (isNaN(parseInt(album_id)) || parseInt(album_id) < 0) {
-        MusicDBHelper.GetAll({ onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), onError: () => rest.SendErrorInternalServer(res, Error.SQLError()) })
+        MusicDBHelper.GetAll({ 
+            arguments: search ? [ {
+                column: "name",
+                comparison: "LIKE",
+                value: `%${search as string}%`
+            } ] : [],
+            onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
+            onError: () => rest.SendErrorInternalServer(res, Error.SQLError()) })
         return
     }
 
@@ -42,7 +50,13 @@ Music.get('/', async(req, res, next) => {
             column: 'album_id',
             value: album_id,
             comparison: '=',
-        }],
+        },
+            search ? {
+                column: "name",
+                comparison: "LIKE",
+                value: `%${search as string}%`
+            } : null
+        ],
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

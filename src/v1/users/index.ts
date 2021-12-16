@@ -40,7 +40,19 @@ User.get('/pages', async(req, res, next) => {
 })
 
 User.get('/', async(req, res, next) => {
+    var { page, search } = req.query;
+
+    if (isNaN(parseInt(page as string)))
+        page = undefined
+
     userDBHelper.GetAll({
+        limit: 20,
+        offset: (page ? parseInt(page as string) * 20 : 0),
+        arguments: search ? [ {
+            column: "name",
+            comparison: "LIKE",
+            value: `%${search as string}%`
+        } ] : [],
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

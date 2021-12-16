@@ -16,7 +16,7 @@ const Directory = "album"
 const AlbumDBHelper = new DBHelper<AlbumDB>("album");
 
 Album.get('/', async(req, res, next) => {
-    var { page } = req.query;
+    var { page, search } = req.query;
 
     if (isNaN(parseInt(page as string)) || parseInt(page as string) < 0)
         page = undefined
@@ -24,6 +24,11 @@ Album.get('/', async(req, res, next) => {
     AlbumDBHelper.GetAll({
         limit: 20,
         offset: (page ? parseInt(page as string) * 20 : 0),
+        arguments: search ? [ {
+            column: "name",
+            comparison: "LIKE",
+            value: `%${search as string}%`
+        } ] : [],
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })

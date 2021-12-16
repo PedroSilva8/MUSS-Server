@@ -11,6 +11,7 @@ export interface IGetAll<T> {
     limit?: number
     offset?: number
     orderBy?: IDBOrderBy
+    arguments?: IDBArgument[]
     onSuccess?: (Result: T[]) => void
     onError?: (Error: MysqlError) => void
 }
@@ -104,6 +105,7 @@ export default class DBHelper<T extends {}> {
             limit: props.limit,
             offset: props.offset?.toString(),
             orderBy: props.orderBy,
+            arguments: props.arguments,
             onSuccess: (data) => { if (props.onSuccess) props.onSuccess(this.DataToList(data)) },
             onError: props.onError
         })
