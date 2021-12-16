@@ -7,6 +7,7 @@ import { ArtistDB } from '@Interface/database'
 
 import express from 'express'
 import { IsUserAdmin } from '../token'
+import RegexHelper from '@Global/RegexHelper'
 
 const Artist = express.Router()
 
@@ -15,14 +16,43 @@ const Directory = "artist"
 const ArtistDBHelper = new DBHelper<ArtistDB>("artist");
 
 Artist.get('/', async(req, res, next) => {
+    var { page } = req.query;
+
+    if (isNaN(parseInt(page as string)))
+        page = undefined
+
     ArtistDBHelper.GetAll({
+        limit: 20,
+        offset: (page ? parseInt(page as string) * 20 : 0),
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)),
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     }) 
 })
 
+Artist.get('/:id(\\d+)', async(req, res, next) => {
+    ArtistDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError([Result])),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    }) 
+})
+
+
+Artist.get('/pages', async(req, res, next) => {
+    var { PageLength } = req.query
+    
+    if (!RegexHelper.IsInt(PageLength as string))
+        PageLength = '20'
+
+    ArtistDBHelper.GetPages({
+        pageLength: parseInt(PageLength as string),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError({ TotalPages: Result })),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
 Artist.post('/', async(req, res, next) => {
-    const { name, file, token } = req.body;
+    const { name, image, token } = req.body;
 
     IsUserAdmin({
         token: token,
@@ -36,7 +66,7 @@ Artist.post('/', async(req, res, next) => {
                 return res.status(500).send(Error.ArgumentError([{Title: "1"}]));
         
             //Check File
-            var FinalImage = unescape(file);
+            var FinalImage = unescape(image);
         
             if (!FinalImage)
                 return rest.SendErrorBadRequest(res, Error.DecodeError())

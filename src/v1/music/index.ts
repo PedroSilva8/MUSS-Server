@@ -93,7 +93,7 @@ Music.post('/', async(req, res, next) => {
                 return;
             }
         
-            if (dCover && (dCover != "" && (!/[A-Za-z0-9+/=]/.test(dCover) || dCover.split('base64,').length != 2))) {
+            if (cover && (dCover != "" && (!/[A-Za-z0-9+/=]/.test(dCover) || dCover.split('base64,').length != 2))) {
                 rest.SendErrorBadRequest(res, Error.ArgumentError("Invalid Image Sent"))
                 return;
             }
@@ -105,7 +105,7 @@ Music.post('/', async(req, res, next) => {
                         Dir: `${Directory}/${Result[0].id}/`,
                         onSuccess: () => {
                             var coverError = false
-                            if (dCover)
+                            if (cover)
                                 FileSystem.Write({
                                     fileName: `${Directory}/${Result[0].id}/${Result[0].id}.png`,
                                     data: dCover.split('base64,')[1],

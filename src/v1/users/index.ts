@@ -25,9 +25,34 @@ const User = express.Router()
 const userDBHelper = new DBHelper<UserDB>("user");
 const tokenDBHelper = new DBHelper<TokenDB>("token");
 
+
+User.get('/pages', async(req, res, next) => {
+    var { PageLength } = req.query
+    
+    if (!RegexHelper.IsInt(PageLength as string))
+        PageLength = '20'
+
+    userDBHelper.GetPages({
+        pageLength: parseInt(PageLength as string),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError({ TotalPages: Result })),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
 User.get('/', async(req, res, next) => {
     userDBHelper.GetAll({
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
+User.get('/:id(\\d+)', async(req, res, next) => {
+    userDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => {
+            Result.password = null
+            rest.SendSuccess(res, Error.SuccessError([Result]))
+        },
         onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
     })
 })
@@ -80,10 +105,10 @@ const UpdateUser = (index: number, password: string, name: string, isAdmin: stri
             data: password && password != "" ? {
                 name,
                 password: hash,
-                isAdmin: isAdmin == "true" ? "1" : '0'
+                isAdmin: isAdmin == "true" || "1" ? "1" : '0'
             }: {
                 name,
-                isAdmin: isAdmin == "true"? "1" : '0'
+                isAdmin: isAdmin == "true" || "1" ?  "1" : '0'
             },
             onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
             onError: (Message) => rest.SendErrorInternalServer(res, Error.ArgumentError(Message))
@@ -118,7 +143,7 @@ User.put('/:id(\\d+)', async(req, res, next) => {
             userDBHelper.CountColumn({
                 column: 'isAdmin',
                 onSuccess: (length) => {
-                    if (length == 1 && isAdmin == "false") {
+                    if (length == 1 && isAdmin == "false" || isAdmin == "0") {
                         userDBHelper.Get({
                             index: parseInt(req.params.id),
                             onSuccess: (user) => {
