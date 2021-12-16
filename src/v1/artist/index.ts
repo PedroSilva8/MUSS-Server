@@ -29,6 +29,15 @@ Artist.get('/', async(req, res, next) => {
     }) 
 })
 
+Artist.get('/:id(\\d+)', async(req, res, next) => {
+    ArtistDBHelper.Get({
+        index: parseInt(req.params.id),
+        onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError([Result])),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    }) 
+})
+
+
 Artist.get('/pages', async(req, res, next) => {
     var { PageLength } = req.query
     
@@ -43,7 +52,7 @@ Artist.get('/pages', async(req, res, next) => {
 })
 
 Artist.post('/', async(req, res, next) => {
-    const { name, file, token } = req.body;
+    const { name, image, token } = req.body;
 
     IsUserAdmin({
         token: token,
@@ -57,7 +66,7 @@ Artist.post('/', async(req, res, next) => {
                 return res.status(500).send(Error.ArgumentError([{Title: "1"}]));
         
             //Check File
-            var FinalImage = unescape(file);
+            var FinalImage = unescape(image);
         
             if (!FinalImage)
                 return rest.SendErrorBadRequest(res, Error.DecodeError())

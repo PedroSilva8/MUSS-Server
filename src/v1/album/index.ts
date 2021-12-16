@@ -51,7 +51,7 @@ Album.get('/:id(\\d+)', async(req, res, next) => {
 })
 
 Album.post('/', async(req, res, next) => {
-    const { name, artist_id, description, file, token } = req.body;
+    const { name, artist_id, description, image, token } = req.body;
 
     IsUserAdmin({
         token: token,
@@ -73,7 +73,7 @@ Album.post('/', async(req, res, next) => {
                 return res.status(500).send(Error.ArgumentError(invalidArguments))
         
             //Check File
-            var FinalImage = unescape(file);
+            var FinalImage = unescape(image);
         
             if (!FinalImage)
                 return rest.SendErrorBadRequest(res, Error.DecodeError())
