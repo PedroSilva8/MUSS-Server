@@ -30,3 +30,10 @@ export interface TokenDB {
     token: string
     expiration_date: Date | string
 }
+
+export interface PlaylistDB {
+    id?: number,
+    userId: number
+    name: string
+    description: string
+}

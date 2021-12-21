@@ -30,36 +30,42 @@ const updateMusicLength = (music: MusicDB, file: string) => {
 }
 
 Music.get('/', async(req, res, next) => {
-    const album_id = req.query.album_id as string;
-    var { search } = req.query;
+    var { search, album_id, playlist_id, token } = req.query;
 
-    if (isNaN(parseInt(album_id)) || parseInt(album_id) < 0) {
-        MusicDBHelper.GetAll({ 
-            arguments: search ? [ {
-                column: "name",
-                comparison: "LIKE",
-                value: `%${search as string}%`
-            } ] : [],
+    if (RegexHelper.IsInt(album_id as string)) {
+        return  MusicDBHelper.GetWhere({
+                arguments: [{
+                    column: 'album_id',
+                    value: album_id  as string,
+                    comparison: '=',
+                },
+                    ...(search ? [{
+                        column: "name",
+                        comparison: "LIKE",
+                        value: `%${search as string}%`
+                    }] : [])
+                ],
+                onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
+                onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+            })
+    }
+    else if (RegexHelper.IsInt(playlist_id  as string)) {
+        return MusicDBHelper.Custom({
+            query: 'SELECT `music`.* FROM `user`, `token`, `playlist`, `playlist_music`, `music` WHERE `playlist`.`userId`=`user`.`id` AND `token`=? AND `playlist`.`id`=? AND `playlist`.`id`=`playlist_music`.`playlistId` AND `playlist_music`.`musicId`=`music`.`id`;',
+            arguments: [ token as string, playlist_id as string  ],
             onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
-            onError: () => rest.SendErrorInternalServer(res, Error.SQLError()) })
-        return
+            onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+        })
     }
 
-    MusicDBHelper.GetWhere({
-        arguments: [{
-            column: 'album_id',
-            value: album_id,
-            comparison: '=',
-        },
-            ...(search ? [{
-                column: "name",
-                comparison: "LIKE",
-                value: `%${search as string}%`
-            }] : [])
-        ],
+    MusicDBHelper.GetAll({ 
+        arguments: search ? [ {
+            column: "name",
+            comparison: "LIKE",
+            value: `%${search as string}%`
+        } ] : [],
         onSuccess: (Result) => rest.SendSuccess(res, Error.SuccessError(Result, Result.length)), 
-        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
-    })
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError()) })
 })
 
 Music.get('/:id(\\d+)', async(req, res, next) => {

@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Tempo de geração: 10-Dez-2021 às 15:07
--- Versão do servidor: 10.6.5-MariaDB
--- versão do PHP: 8.0.13
+-- Generation Time: Dec 21, 2021 at 05:41 PM
+-- Server version: 10.6.5-MariaDB
+-- PHP Version: 8.0.13
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Banco de dados: `music_server`
+-- Database: `music_server`
 --
 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `album`
+-- Table structure for table `album`
 --
 
 CREATE TABLE `album` (
@@ -37,7 +37,7 @@ CREATE TABLE `album` (
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `artist`
+-- Table structure for table `artist`
 --
 
 CREATE TABLE `artist` (
@@ -48,7 +48,7 @@ CREATE TABLE `artist` (
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `music`
+-- Table structure for table `music`
 --
 
 CREATE TABLE `music` (
@@ -62,7 +62,31 @@ CREATE TABLE `music` (
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `token`
+-- Table structure for table `playlist`
+--
+
+CREATE TABLE `playlist` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `name` varchar(63) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(63) COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `playlist_music`
+--
+
+CREATE TABLE `playlist_music` (
+  `playlistId` int(11) NOT NULL,
+  `musicId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `token`
 --
 
 CREATE TABLE `token` (
@@ -74,7 +98,7 @@ CREATE TABLE `token` (
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `user`
+-- Table structure for table `user`
 --
 
 CREATE TABLE `user` (
@@ -84,67 +108,143 @@ CREATE TABLE `user` (
   `isAdmin` tinyint(1) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Índices para tabelas despejadas
+-- Table structure for table `user_like`
+--
+
+CREATE TABLE `user_like` (
+  `userId` int(11) NOT NULL,
+  `musicId` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Indexes for dumped tables
 --
 
 --
--- Índices para tabela `album`
+-- Indexes for table `album`
 --
 ALTER TABLE `album`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_artist_id` (`artist_id`);
 
 --
--- Índices para tabela `artist`
+-- Indexes for table `artist`
 --
 ALTER TABLE `artist`
   ADD PRIMARY KEY (`id`);
 
 --
--- Índices para tabela `music`
+-- Indexes for table `music`
 --
 ALTER TABLE `music`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_album_id` (`album_id`);
 
 --
--- Índices para tabela `token`
+-- Indexes for table `playlist`
+--
+ALTER TABLE `playlist`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+--
+-- Indexes for table `playlist_music`
+--
+ALTER TABLE `playlist_music`
+  ADD PRIMARY KEY (`playlistId`,`musicId`),
+  ADD KEY `musicId` (`musicId`);
+
+--
+-- Indexes for table `token`
 --
 ALTER TABLE `token`
   ADD PRIMARY KEY (`userId`,`token`);
 
 --
--- Índices para tabela `user`
+-- Indexes for table `user`
 --
 ALTER TABLE `user`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT de tabelas despejadas
+-- Indexes for table `user_like`
+--
+ALTER TABLE `user_like`
+  ADD PRIMARY KEY (`userId`,`musicId`),
+  ADD KEY `musicId` (`musicId`);
+
+--
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT de tabela `album`
+-- AUTO_INCREMENT for table `album`
 --
 ALTER TABLE `album`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `artist`
+-- AUTO_INCREMENT for table `artist`
 --
 ALTER TABLE `artist`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `music`
+-- AUTO_INCREMENT for table `music`
 --
 ALTER TABLE `music`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `user`
+-- AUTO_INCREMENT for table `playlist`
+--
+ALTER TABLE `playlist`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `album`
+--
+ALTER TABLE `album`
+  ADD CONSTRAINT `FK_artist_id` FOREIGN KEY (`artist_id`) REFERENCES `artist` (`id`);
+
+--
+-- Constraints for table `music`
+--
+ALTER TABLE `music`
+  ADD CONSTRAINT `FK_album_id` FOREIGN KEY (`album_id`) REFERENCES `album` (`id`);
+
+--
+-- Constraints for table `playlist`
+--
+ALTER TABLE `playlist`
+  ADD CONSTRAINT `playlist_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`);
+
+--
+-- Constraints for table `playlist_music`
+--
+ALTER TABLE `playlist_music`
+  ADD CONSTRAINT `playlist_music_ibfk_1` FOREIGN KEY (`musicId`) REFERENCES `music` (`id`),
+  ADD CONSTRAINT `playlist_music_ibfk_2` FOREIGN KEY (`playlistId`) REFERENCES `playlist` (`id`);
+
+--
+-- Constraints for table `user_like`
+--
+ALTER TABLE `user_like`
+  ADD CONSTRAINT `user_like_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`),
+  ADD CONSTRAINT `user_like_ibfk_2` FOREIGN KEY (`musicId`) REFERENCES `music` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -270,7 +270,7 @@ User.get('/token', async(req, res, next) => {
 
     GetUserFromToken({
         token: token as string,
-        onSuccess: (user) => rest.SendSuccess(res, Error.SuccessError(user)),
+        onSuccess: (user) => { user.password = undefined; rest.SendSuccess(res, Error.SuccessError(user)) },
         onError: () => rest.SendErrorNotFound(res, Error.NotFoundError())
     })
 })

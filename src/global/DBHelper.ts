@@ -7,6 +7,13 @@ export interface IGetPagesLeft {
     onError?: (Error: MysqlError) => void
 }
 
+export interface ICustom<T> {
+    query: string,
+    arguments: string[],
+    onSuccess?: (Result: T[]) => void
+    onError?: (Error: MysqlError) => void
+}
+
 export interface IGetAll<T> {
     limit?: number
     offset?: number
@@ -28,6 +35,14 @@ export interface IGet<T> {
     onSuccess?: (Result: T | undefined) => void
     onError?: (Error: MysqlError) => void
 }
+
+export interface IGetWithAuth<T> {
+    index: number
+    token: string
+    onSuccess?: (Result: T | undefined) => void
+    onError?: (Error: MysqlError) => void
+}
+
 
 export interface IExists<T> {
     index: number,
@@ -92,9 +107,18 @@ export default class DBHelper<T extends {}> {
 
     GetPages = (props: IGetPagesLeft) => {
         DatabaseHelper.Custom({
-            query: `SELECT CEIL(COUNT(*) / ${props.pageLength}) as 'Pages' FROM \`album\``,
+            query: `SELECT CEIL(COUNT(*) / ${props.pageLength}) as 'Pages' FROM \`${this.Target}\``,
             arguments: [],
             onSuccess: (Result) => (props.onSuccess && Result[0].Pages ? props.onSuccess(parseInt(Result[0].Pages)) : props.onError),
+            onError: props.onError
+        })
+    }
+
+    Custom = (props: ICustom<T>) => {
+        DatabaseHelper.Custom({
+            query: props.query,
+            arguments: props.arguments,
+            onSuccess: (data) => (props.onSuccess ? props.onSuccess(this.DataToList(data)) : props.onError),
             onError: props.onError
         })
     }
@@ -125,6 +149,15 @@ export default class DBHelper<T extends {}> {
         DatabaseHelper.GetWithId({
             index: props.index,
             target: this.Target,
+            onSuccess: (data) => { if (props.onSuccess) { var list = this.DataToList(data); props.onSuccess(list && list.length >= 1 ? list[0] : undefined)} },
+            onError: props.onError
+        })
+    }
+
+    GetWithAuth = (props: IGetWithAuth<T>) => {
+        DatabaseHelper.Custom({
+            query: "SELECT `" + this.Target + "`.* FROM `user`, `token`, `" + this.Target + "` WHERE `" + this.Target + "`.`userId`=`user`.`id` AND `token`=? AND `" + this.Target + "`.`id`=?",
+            arguments: [ props.token, props.index.toString() ],
             onSuccess: (data) => { if (props.onSuccess) { var list = this.DataToList(data); props.onSuccess(list && list.length >= 1 ? list[0] : undefined)} },
             onError: props.onError
         })

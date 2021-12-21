@@ -8,6 +8,7 @@ import Album from './v1/album'
 import Music from './v1/music'
 import Feed from './v1/feed'
 import User from './v1/users'
+import Playlist from './v1/playlist'
 
 const app = express();
 const PORT = 3000;
@@ -28,5 +29,6 @@ app.use('/api/1/album', Album);
 app.use('/api/1/music', Music);
 app.use('/api/1/feed', Feed);
 app.use('/api/1/user', User);
+app.use('/api/1/playlist', Playlist);
 
 app.listen(PORT, () => console.log(`it's alive on http://localhost:${PORT}`));

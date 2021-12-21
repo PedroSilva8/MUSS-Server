@@ -6,27 +6,27 @@ export default class rest {
         res.status(code).send(message);
     }
 
-    static SendSuccess = (req: Response, message: any) => {
-        rest.Send(req, 200, message);
+    static SendSuccess = (res: Response, message: any) => {
+        rest.Send(res, 200, message);
     }
 
-    static SendErrorBadRequest = (req: Response, message: any) => {
-        rest.Send(req, 400, message);
+    static SendErrorBadRequest = (res: Response, message: any) => {
+        rest.Send(res, 400, message);
     }
 
-    static SendErrorForbidden = (req: Response, message: any) => {
-        rest.Send(req, 403, message);
+    static SendErrorForbidden = (res: Response, message: any) => {
+        rest.Send(res, 403, message);
     }
 
-    static SendErrorNotFound = (req: Response, message: any) => {
-        rest.Send(req, 404, message);
+    static SendErrorNotFound = (res: Response, message: any) => {
+        rest.Send(res, 404, message);
     }
 
-    static SendErrorConflict = (req: Response, message: any) => {
-        rest.Send(req, 409, message);
+    static SendErrorConflict = (res: Response, message: any) => {
+        rest.Send(res, 409, message);
     }
 
-    static SendErrorInternalServer = (req: Response, message: any) => {
-        rest.Send(req, 500, message);
+    static SendErrorInternalServer = (res: Response, message: any) => {
+        rest.Send(res, 500, message);
     }
 }
