@@ -33,7 +33,7 @@ export interface TokenDB {
 
 export interface PlaylistDB {
     id?: number,
-    userId: number
+    userId?: number
     name: string
     description: string
 }

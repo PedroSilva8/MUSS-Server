@@ -55,6 +55,15 @@ export interface IDBHelperUpdate {
     onError?: (Message: MysqlError) => void
 }
 
+export interface IDBHelperUpdateWithAuth {
+    index: string
+    userId: number
+    target: string
+    data: { [index: string]: string; }
+    onSuccess?: (Message: any) => void
+    onError?: (Message: MysqlError) => void
+}
+
 export interface IDBHelperDeleteWithId {
     index: string
     target: string
@@ -168,6 +177,27 @@ export default class DatabaseHelper {
 
         Database.SimpleQuery({ 
             query: `UPDATE ${props.target} SET ${setQuery} WHERE id=?`,
+            arguments: Arguments,
+            onSuccess: props.onSuccess,
+            onError: props.onError
+        });
+    }
+
+    static UpdateWithIdAndAuth = (props: IDBHelperUpdateWithAuth) => {
+        var setQuery = "";
+        var Arguments = [];        
+        for (let key in props.data) {
+            if (props.data[key]) {
+                setQuery += `, \`${key}\`=?`
+                Arguments.push(props.data[key]);
+            }
+        }
+
+        Arguments.push(props.index, props.userId.toString());
+        setQuery = setQuery.slice(1);
+
+        Database.SimpleQuery({ 
+            query: `UPDATE ${props.target} SET ${setQuery} WHERE id=? AND userId=?`,
             arguments: Arguments,
             onSuccess: props.onSuccess,
             onError: props.onError

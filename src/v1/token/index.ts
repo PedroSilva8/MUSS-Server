@@ -3,8 +3,12 @@ import { MysqlError } from "mysql"
 import DBHelper from "@Global/DBHelper"
 import { TokenDB, UserDB } from "@Interface/database"
 
-const tokenDBHelper = new DBHelper<TokenDB>("token")
-const userDBHelper = new DBHelper<UserDB>("user")
+/*
+    Defining outside of functions causes a errors propably due to the fact that it is a circular dependacy with DBHelper, 
+    need to look futher into this to avoid having to define this in every funtion
+*/
+//const tokenDBHelper = new DBHelper<TokenDB>("token")
+//const userDBHelper = new DBHelper<UserDB>("user")
 
 export interface IIsTokenValid {
     userId: number
@@ -15,8 +19,8 @@ export interface IIsTokenValid {
 
 export interface IGetUserFromToken {
     token: string, 
-    onSuccess: (user: UserDB) => void, 
-    onError: () => void
+    onSuccess: (user: UserDB | undefined) => void, 
+    onError: (Error: MysqlError) => void
 }
 
 export interface IIsUserAdmin {
@@ -26,6 +30,7 @@ export interface IIsUserAdmin {
 }
 
 export const isTokenValid = (props: IIsTokenValid) => {
+    const tokenDBHelper = new DBHelper<TokenDB>("token")
     tokenDBHelper.DeleteWhere({
         arguments: [
             {
@@ -64,6 +69,9 @@ export const isTokenValid = (props: IIsTokenValid) => {
 }
 
 export const GetUserFromToken = (props: IGetUserFromToken) => {
+    const tokenDBHelper = new DBHelper<TokenDB>("token")
+    const userDBHelper = new DBHelper<UserDB>("user")
+    
     tokenDBHelper.GetWhere({
         arguments: [
             {
@@ -74,7 +82,7 @@ export const GetUserFromToken = (props: IGetUserFromToken) => {
         ],
         onSuccess: (Result) => {
             if (Result.length == 0)
-                return props.onSuccess({ name: "", isAdmin: '0' })
+                return props.onSuccess(undefined)
 
             userDBHelper.Get({
                 index: Result[0].userId,
@@ -82,7 +90,7 @@ export const GetUserFromToken = (props: IGetUserFromToken) => {
                 onError: props.onError
             })
         },
-        onError: () => { }
+        onError: props.onError
     })
 }
 

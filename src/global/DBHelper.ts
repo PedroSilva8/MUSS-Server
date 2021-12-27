@@ -1,5 +1,6 @@
 import DatabaseHelper, { IDBArgument, IDBOrderBy } from '@Database/DatabaseHelper'
-import { MysqlError } from 'mysql';
+import { MysqlError } from 'mysql'
+import { GetUserFromToken } from '../v1/token'
 
 export interface IGetPagesLeft {
     pageLength: number,
@@ -57,6 +58,14 @@ export interface IUpdate<T> {
     onError?: (Error: MysqlError) => void
 }
 
+export interface IUpdateWithAuth<T> {
+    index: number
+    token: string
+    data: T
+    onSuccess?: () => void
+    onError?: (Error: MysqlError) => void
+}
+
 export interface ICreate<T> {
     data: T
     onSuccess?: (Result: T[]) => void
@@ -75,6 +84,13 @@ export interface IDelete {
     onError?: (Error: MysqlError) => void
 }
 
+export interface IDeleteWithAuth {
+    index: number,
+    token: string
+    onSuccess?: () => void
+    onError?: (Error: MysqlError) => void
+}
+
 export interface IDeleteWhere {
     arguments: IDBArgument[],
     onSuccess?: () => void
@@ -82,7 +98,7 @@ export interface IDeleteWhere {
 }
 
 export default class DBHelper<T extends {}> {
-    Target: string = "";
+    Target: string = ""
 
     constructor(target: string) {
         this.Target = target;
@@ -182,6 +198,26 @@ export default class DBHelper<T extends {}> {
         })
     }
 
+    UpdateWithAuth = (props: IUpdateWithAuth<T>) => {
+        GetUserFromToken({
+            token: props.token,
+            onSuccess: (user) => {
+                if (!user)
+                    return props.onError(undefined)
+                
+                DatabaseHelper.UpdateWithIdAndAuth({
+                    index: props.index.toString(),
+                    userId: user.id,
+                    data: props.data,
+                    target: this.Target,
+                    onSuccess: props.onSuccess,
+                    onError: props.onError
+                })
+            },
+            onError: props.onError
+        })
+    }
+
     Create = (props: ICreate<T>) => {
         DatabaseHelper.Create({
             target: this.Target,
@@ -196,6 +232,24 @@ export default class DBHelper<T extends {}> {
             index: props.index.toString(),
             target: this.Target,
             onSuccess: props.onSuccess,
+            onError: props.onError
+        })
+    }
+
+    DeleteWithAuth = (props: IDeleteWithAuth) => {
+        GetUserFromToken({
+            token: props.token,
+            onSuccess: (user) => {
+                if (!user)
+                    return props.onError(undefined)
+                
+                    DatabaseHelper.DeleteWithId({
+                        index: props.index.toString(),
+                        target: this.Target,
+                        onSuccess: props.onSuccess,
+                        onError: props.onError
+                    })
+            },
             onError: props.onError
         })
     }

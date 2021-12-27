@@ -91,4 +91,29 @@ Playlist.get('/:id(\\d+)/image', async(req, res, next) => {
     })
 })
 
+Playlist.put('/:id(\\d+)', async(req, res, next) => {
+    var { token, name, description } = req.body
+
+    PlaylistDBHelper.UpdateWithAuth({
+        index: parseInt(req.params.id),
+        token: token as string,
+        data: { name: name as string, description: description as string },
+        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
+
+Playlist.delete('/:id(\\d+)', async(req, res, next) => {
+    var { token } = req.body
+
+    PlaylistDBHelper.DeleteWithAuth({
+        index: parseInt(req.params.id),
+        token: token as string,
+        onSuccess: () => rest.SendSuccess(res, Error.SuccessError()),
+        onError: () => rest.SendErrorInternalServer(res, Error.SQLError())
+    })
+})
+
+
 export default Playlist;
